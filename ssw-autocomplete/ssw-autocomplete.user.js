@@ -5,7 +5,7 @@
 // @include        http://neopets.com/*
 // @match          http://www.neopets.com/*
 // @match          http://neopets.com/*
-// @updated        25 February 2013
+// @updated        18.03.2013
 // ==/UserScript==
 
 // Written for Chrome, may work in Firefox
