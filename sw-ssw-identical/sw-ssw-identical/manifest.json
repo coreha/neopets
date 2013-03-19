@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Set SW/SSW to 'Identical to my phrase'",
+  "description": "Sets the SW and SSW to 'Identical to my phrase'.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/*"],
+      "js": ["jquery.min.js", "sw-ssw-identical.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
