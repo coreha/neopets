@@ -1,4 +1,4 @@
-Shops
+Galleries
 =====
 This will remove user code on neopets user galleries.
 
