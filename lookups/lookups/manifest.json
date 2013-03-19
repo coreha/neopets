@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Turn Off User Lookup Code",
+  "description": "Removes user code from user lookups.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/userlookup.phtml*"],
+      "js": ["jquery.min.js", "lookups.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
