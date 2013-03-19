@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Turn Off Shop Code",
+  "description": "Removes user code from shops.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/browseshop*"],
+      "js": ["shops.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

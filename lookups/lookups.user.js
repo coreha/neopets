@@ -4,7 +4,7 @@
 // @include        http://www.neopets.com/userlookup*
 // @match          http://www.neopets.com/userlookup*
 // @version        1.00
-// @updated        31.01.2012
+// @updated        18.03.2013
 // ==/UserScript==
 
 e = document.createElement("script");
