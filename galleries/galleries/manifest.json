@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Turn Off Gallery Code",
+  "description": "Removes user code from galleries.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/gallery/?*gu=*", "http://www.neopets.com/gallery/index.phtml?*gu=*"],
+      "js": ["jquery.min.js", "galleries.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
