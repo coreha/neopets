@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - SSW Autocomplete",
+  "description": "Adds autocomplete to the SSW.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/*"],
+      "css": ["jquery-ui.css", "ssw-autocomplete.css"],
+      "js": ["jquery.min.js", "jquery-ui.min.js", "ssw-autocomplete.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
