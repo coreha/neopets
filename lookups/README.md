@@ -8,7 +8,7 @@ If using Chrome or Chromium, the Chrome Extension will work better/faster, remov
 
 The .crx file is a pre-packed chrome extension; the source for the extension is in the [lookups/]:https://github.com/coreha/neopets/tree/master/lookups/lookups directory, and you can use that to pack your own chrome extension.
 
-jquery.min.js can be replaced with a copy from [Google's CDN]:https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js or a copy from [jQuery.com]:http://jquery.com.
+jquery.min.js can be replaced with a copy from [Google's CDN](https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js) or a copy from [jQuery.com](http://jquery.com).
 
 User Script
 -----
