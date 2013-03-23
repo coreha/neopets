@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Sort Caption Competition entries",
+  "description": "Sorts Caption Competition entries by number of votes.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/*"],
+      "js": ["jquery.min.js", "cc-sort.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
