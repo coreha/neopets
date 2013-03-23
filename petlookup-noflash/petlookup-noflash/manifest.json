@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Petlookups without flash",
+  "description": "Replaces the flash embed on petlookups with an image.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/petlookup.phtml*"],
+      "js": ["petlookup-noflash.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
