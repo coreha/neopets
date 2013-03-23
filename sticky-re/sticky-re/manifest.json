@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - Sticky REs",
+  "description": "Puts REs at the top of the page for a few seconds.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/*"],
+      "js": ["jquery.min.js", "sticky-re.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
