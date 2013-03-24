@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+
+  "name": "Neopets - SSW Popout",
+  "description": "Adds a link to open the SSW in it's own window.",
+  "version": "1.0",
+
+  "permissions": [
+    "http://www.neopets.com/"
+  ],
+   "content_scripts": [
+    {
+      "matches": ["http://www.neopets.com/*"],
+      "js": ["ssw-popout.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
