@@ -22,29 +22,214 @@ console.log(localStorage["items"]);
 */
 
 //var db = chrome.extension.getBackgroundPage().db;
+
+var defaultSettings = {
+	"showRarity":	1,
+	"showSort":		1,
+	"showFolder":	1,
+	"regexSearch":	1,
+	"itemsPerPage":	10
+};
+
+var settings;
+
+try {
+	settings = JSON.parse(localStorage["settings"]);
+} catch (e) {
+	settings = defaultSettings;
+	localStorage["settings"] = JSON.stringify(settings);
+}
+
 var db;
 db = openDatabase('sdb', '1.0', 'sdb items', 200 * 1024 * 1024);
 db.transaction(function (tx) {
 	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT, qty INTEGER, rarity INTEGER)');
 });
-db.transaction( function (tx) {
-	tx.executeSql('SELECT DISTINCT folder FROM items', [], listFolders, handleError);
-});
-db.transaction( function (tx) {
-	tx.executeSql('SELECT DISTINCT type FROM items', [], listTypes, handleError);
-});
-db.transaction( function (tx) {
-	tx.executeSql('SELECT * FROM items ORDER BY obj_info_id ASC LIMIT 30', [], updateView, handleError);
-});
 
+function updateFolders () {
+	db.transaction( function (tx) {
+		tx.executeSql('SELECT DISTINCT folder FROM items', [], listFolders, handleError);
+	});
+}
+
+function updateTypes () {
+	db.transaction( function (tx) {
+		tx.executeSql('SELECT DISTINCT type FROM items', [], listTypes, handleError);
+	});
+}
+
+function updateRarities () {
+	db.transaction( function (tx) {
+		tx.executeSql('SELECT DISTINCT rarity FROM items', [], listRarity, handleError);
+	});
+}
+
+function checkSettings () {
+	if ( !settings.showSort )
+		$('label[for=sort]').addClass('hidden');
+	if ( !settings.showRarity )
+		$('label[for=rarity]').addClass('hidden');
+	if ( !settings.showFolder )
+		$('label[for=folder]').addClass('hidden');
+	if ( !settings.regexSearch )
+		$('.regexSearch').addClass('hidden');
+}
+
+function restoreState () {
+	var defaultState = {
+		"search":		"",
+		"regexChecked":	0,
+		"folder":		"(Any Folder)",
+		"rarityType":	"=",
+		"rarity":		"",
+		"rarityGuide":	"",
+		"sort":			"obj_info_id",
+		"sortWay":		"ASC",
+		"page":			0
+	};
+	
+	try {
+		state = JSON.parse(localStorage["state"]);
+	} catch (e) {
+		state = defaultState;
+		localStorage["state"] = JSON.stringify(state);
+	}
+	
+	console.log("Restoring state:", state);
+	
+	var searchForm			= document.searchForm;
+	searchForm.search.value	= state.search;
+	searchForm.rarity.value	= state.rarity;
+	searchForm.regex.checked= ~~state.regexChecked;
+	window.rarityLastValue	= state.rarity;
+	
+	$.each([searchForm.folder, searchForm.rarityType, searchForm.rarityGuide, searchForm.sort, searchForm.sortWay],
+		function (index, item) {
+			for ( var i = 0; i < item.options.length; i++ ) {
+				if ( item.options[i].value == state[item.name] ) {
+					item.options[i].selected = true;
+					break;
+				}
+			}
+		}
+	);
+	
+	// Autocomplete doesn't fire a change event until after blur
+	// This really shouldn't be necessary, but it is.
+	setInterval( function () {
+		if ( document.searchForm.rarity.value != window.rarityLastValue ) {
+			$(document.searchForm.rarity).change();
+			window.rarityLastValue = document.searchForm.rarity.value;
+		} }, 1000
+	);
+	
+	getResults();
+}
+
+// No longer in use.
+function setInitialView () {
+	db.transaction( function (tx) {
+		tx.executeSql('SELECT * FROM items ORDER BY obj_info_id ASC LIMIT ?', [settings.itemsPerPage], updateView, handleError);
+	});
+}
+
+function saveState () {
+	var searchForm		= document.searchForm;
+	state.search		= searchForm.search.value;
+	state.regexChecked	= ~~searchForm.regex.checked;
+	state.rarity		= searchForm.rarity.value;
+	
+	console.log("Saving state: ", state);
+	
+	$.each([searchForm.folder, searchForm.rarityType, searchForm.rarityGuide, searchForm.sort, searchForm.sortWay],
+		function (index, item) {
+			state[item.name] = item.value;
+		}
+	);
+	
+	console.log(state);
+	
+	localStorage["state"] = JSON.stringify(state);
+}
 
 var folders = [];
 var types = [];
+var rarities = [];
 
 $(document).ready( function () {
 
+	updateFolders();
+	//updateTypes();
+	updateRarities();
+	checkSettings();
+	// restoreState();
+	// setInitialView();
+
 	/* Searching */
-	$('div.search input').bind("keyup change click", getResults);
+	$('div.search input, div.search select').bind("keyup change click", delayedResults);
+	
+	$(document.searchForm.rarityGuide).bind("change", function () {
+		document.searchForm.rarity.value = this.value;
+		$(document.searchForm.rarity).change();
+	});
+	
+	$('div.popoutLink a').bind("click",
+		function () {
+			window.open( chrome.extension.getURL('/viewsdb.html') );
+		}
+	);
+	$('div.settingsLink a').bind("click",
+		function () {
+			window.open( chrome.extension.getURL('/settings.html') );
+		}
+	);
+	
+	$('div.pagelink.pull-right').bind("click",
+		function () {
+			state.page++;
+			getResults();
+		}
+	);
+	
+	$('div.pagelink.pull-left').bind("click",
+		function () {
+			state.page--;
+			getResults();
+		}
+	);
+	
+	$('a.selectAll').bind("click",
+		function () {
+			$('.items input[type=number]').each( function (index, item) {
+				item.value = $(item).closest('tr').data('qty');
+			});
+		}
+	);
+	
+	$('a.selectOne').bind("click",
+		function () {
+			$('.items input[type=number]').each( function (index, item) {
+				item.value = 1;
+			});
+		}
+	);
+	
+	$('a.selectLeave').bind("click",
+		function () {
+			$('.items input[type=number]').each( function (index, item) {
+				item.value = $(item).closest('tr').data('qty') - 1;
+			});
+		}
+	);
+	
+	$('a.selectNone').bind("click",
+		function () {
+			$('.items input[type=number]').each( function (index, item) {
+				item.value = 0;
+			});
+		}
+	);
+	
 	$('.error, .noresults').bind('click', function () { $(this).addClass('hidden'); } );
 	
 	$('div.action select[name=action]').bind('change blur', function () {
@@ -55,20 +240,27 @@ $(document).ready( function () {
 		}
 	});
 	
-	$('input.removeQty').bind('keyup', function () {
-		console.log(this);
+	$('table.items').delegate('input.removeQty', 'change keyup blur', function () {
 		var parentQty = $(this).closest('tr').data('qty')
 		if ( this.value > parentQty ) {
 			this.value = parentQty;
+		} else if ( this.value < 0 ) {
+			this.value = 0;
 		}
-		console.log( parentQty );
 	});
 	
 	$('div.action #action-button').bind('click', function (e) {
 		e.preventDefault();
 		
+		this.setAttribute('disabled', 'true');
+
+		var itemArray = $(document.itemForm).serializeArray();
+			itemArray = $.grep(itemArray, function ( obj, index ) {
+				return ( obj.value !== "0" );
+			});
+
 		if ( $('div.action select[name=action]').val() == 'Inventory' ) {
-			var itemArray = $(document.itemForm).serializeArray();
+
 			$.post("http://www.neopets.com/process_safetydeposit.phtml?checksub=scan", $(document.itemForm).serialize()).done(
 				function (data) {
 					if ( data.match(/welcomeLogin/) ) {
@@ -78,10 +270,6 @@ $(document).ready( function () {
 					} else {
 						handleError(null, {"message": "An Unexpected Error has occured."});
 					}
-					
-					itemArray = $.grep(itemArray, function ( obj, index ) {
-						return ( obj.value !== "0" );
-					});
 					
 					$.each(itemArray, function ( index, item ) {
 						var parent = $('input[name="' + item.name + '"]').closest('tr');
@@ -93,7 +281,31 @@ $(document).ready( function () {
 					});
 				}
 			);
+		} else if ( $('div.action select[name=action]').val() == 'Folder' ) {
+		
+			var folder = document.actionForm.folder.value;
+			
+			if ( folder == "" ) {
+				folder = "None";
+			}
+			
+			if ( ! folder.match(/[ .A-Za-z0-9]+/) ) {
+				this.removeAttribute('disabled');
+				return;
+			}
+		
+			itemArray = $.map( itemArray, function ( item, index ) {
+				return parseInt(item.name.match(/\[(\d+)\]/)[1], 10);
+			});
+			
+			db.transaction( function (tx) {
+				tx.executeSql('UPDATE items SET folder = ? WHERE obj_info_id IN (' + itemArray.join(',') + ')', [folder], moveCompleted, handleError);
+			});
+			
+			console.log(itemArray);
 		}
+		
+		this.removeAttribute('disabled');
 	});
 
 });
@@ -116,18 +328,40 @@ function handleReduced (tx, results) {
 	getResults();
 }
 
+function moveCompleted (tx, results) {
+	// Check affected rows...
+	
+	updateFolders();
+	getResults();
+}
+
 function listFolders (tx, results) {
 	for (var row = 0; row < results.rows.length; row++)
 		folders.push(results.rows.item(row).folder);
 		
 	$.each( folders, function ( index, folder ) {
-		$('div.action #folder').append('<option>' + folder + '</option>');
+		$('select[name=folder]').append('<option>' + folder + '</option>');
 	});
+	
+	$(document.actionForm.folder).autocomplete({ source: folders, position: { "collision": "flip" } });
+	
+	// Update Types after Folders
+	updateTypes();
 }
 
 function listTypes (tx, results) {
 	for (var row = 0; row < results.rows.length; row++)
 		types.push(results.rows.item(row).type);
+		
+	// Restore State after the page is ready.
+	restoreState(); 
+}
+
+function listRarity (tx, results) {
+	for (var row = 0; row < results.rows.length; row++)
+		rarities.push(""+results.rows.item(row).rarity);
+		
+	$(document.searchForm.rarity).autocomplete({ source: rarities });
 }
 
 function updateView (tx, results) {
@@ -140,7 +374,33 @@ function updateView (tx, results) {
 		$('div.noresults').addClass('hidden');
 	}
 
-	for (var row = 0; row < results.rows.length; row++) {
+	console.log("Results:", results.rows.length, "Per Page:", settings.itemsPerPage);
+
+	if ( results.rows.length > settings.itemsPerPage ) {
+		$('div.pagelink.pull-right').removeClass('hidden');
+	} else {
+		$('div.pagelink.pull-right').addClass('hidden');
+		state.page = 0;
+	}
+	
+	state.page = ~~state.page;
+	
+	if ( state.page > 0 ) {
+		$('div.pagelink.pull-left').removeClass('hidden');
+	} else {
+		$('div.pagelink.pull-left').addClass('hidden');
+	}
+	
+	var startNum = state.page * settings.itemsPerPage;
+	var endNum = startNum + settings.itemsPerPage;
+
+	if ( endNum > results.rows.length ) {
+		endNum = results.rows.length;
+	}
+
+	console.log("Start:", startNum, "End:", endNum);
+
+	for (var row = startNum; row < endNum; row++) {
 		var item = results.rows.item(row);
 		
 		var tr = document.createElement('tr');
@@ -189,24 +449,68 @@ function handleMsg (tx, data) {
 	console.log(data);
 }
 
+function delayedResults () {
+	// If the user is typing, or holding backspace
+	// then there is no need to search every time.
+	if ( typeof this.timeoutID == "number" ) {
+		window.clearTimeout(this.timeoutID);
+	}
+	this.timeoutID = setTimeout( function () { getResults(); }, 300 );
+}
+
 function getResults () {
 
-	var search = $('input#search').val();
-	if ( search == this.lastsearch ) {
+	var data = $(document.searchForm).serialize() + state.page;
+	if ( data == this.lastsearch ) {
 		return;
 	}
 	
-	var searchHow;
+	console.log('Searching...');
 	
-	if ( $('input#regex:checked').length ) {
-		searchHow = 'REGEXP';
-	} else {
-		searchHow = 'LIKE'
-		search = '%'+search+'%';
+	// There should be a better way to do this.
+	var baseQuery = 'SELECT * FROM items';
+	var queryFields = [];
+	var queryParams = [];
+	
+	var searchText = $(document.searchForm.search).val();
+	var searchHow, searchRarityType, searchRarity;
+	
+	if ( searchText != "" ) {
+		if ( $('input#regex:checked').length ) {
+			searchHow = 'REGEXP';
+		} else {
+			searchHow = 'LIKE'
+			searchText = '%'+searchText+'%';
+		}
+		
+		queryFields.push('name ' + searchHow + ' ?');
+		queryParams.push(searchText);
 	}
 	
+	if ( document.searchForm.rarity.value > 0 ) {
+		queryFields.push('rarity ' + document.searchForm.rarityType.value + ' ?');
+		queryParams.push( parseInt(document.searchForm.rarity.value, 10) );
+	}
+	
+	if ( document.searchForm.folder.value != "(Any Folder)" ) {
+		queryFields.push('folder = ?');
+		queryParams.push( document.searchForm.folder.value );
+	}
+	
+	if ( queryFields.length > 0 ) {
+		baseQuery += ' WHERE ' + queryFields.join(' AND ');
+	}
+	
+	baseQuery += ' ORDER BY ' + document.searchForm.sort.value + ' ' + document.searchForm.sortWay.value;
+	
+	// SQLite is not MySQL.
+	// baseQuery += ' LIMIT ?';
+	// queryParams.push( parseInt( settings.itemsPerPage, 10 ) );
+	
+	console.log( baseQuery, queryParams );
+	
 	db.transaction( function (tx) {
-		tx.executeSql('SELECT * FROM items WHERE name ' + searchHow + ' ? LIMIT 30', [search], updateView, handleError);
+		tx.executeSql(baseQuery, queryParams, updateView, handleError);
 	});
 	
 	/* For testing
@@ -218,5 +522,6 @@ function getResults () {
 		}
 	}); */
 	
-	this.lastsearch = search;
+	this.lastsearch = data;
+	saveState();
 }
