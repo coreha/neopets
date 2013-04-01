@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="lib/bootstrap/bootstrap.css" rel="stylesheet" type="text/css">
+<link href="lib/jquery-ui.css" rel="stylesheet" type="text/css">
+<link href="viewsdb.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="jquery.min.js"></script>
+<script type="text/javascript" src="lib/jquery-ui.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.js"></script>
+<script type="text/javascript" src="viewsdb.js"></script>
+<title>SDB</title>
+</head>
+<body>
+	<div class="searchContainer">
+		<div class="search" style="padding: 0 10px;">
+		<form class="form form-inline" name="searchForm">
+			<div class="input-append" style="float: left;">
+			<input type="text" name="search" id="search" class="input-block-level" style="width: 641px;" placeholder="Search..." />
+				<span class="add-on regexSearch">
+					<label class="checkbox">
+					<input type="checkbox" name="regex" id="regex" />
+					Regex
+					</label>
+				</span>
+			</div>
+			<a class="popout popoutLink" style="float: right; padding-right: 0px;"><img alt="New Window" src="/images/open_in_new_window.png"></a>
+			<a class="popout settingsLink" style="float: right;"><img alt="Change Settings" src="/images/settings-icon.png"></a>
+			<br/>
+			<label for="folder" style="float: left;">
+				<select name="folder" class="input-medium">
+					<option value="">(Any Folder)</option>
+				</select>
+			</label>
+			<label for="rarity">
+				Rarity
+				<select name="rarityType" class="input-tiny">
+					<option>=</option>
+					<option>></option>
+					<option><</option>
+				</select>
+				<div class="input-append">
+					<input type="number" min="0" max="500" class="input-tiny" name="rarity" />
+					<div class="btn-group">
+						<button class="btn dropdown-toggle" data-toggle="dropdown">
+							<span class="caret"></span>
+						</button>
+					<ul class="dropdown-menu rarityGuide">
+						<li>
+							<a data-value="">(Any)</a>
+						</li>
+						<li>
+							<a data-value="75">Uncommon</a>
+						</li>
+						<li>
+							<a data-value="85">Rare</a>
+						</li>
+						<li>
+							<a data-value="90">Very Rare</a>
+						</li>
+						<li>
+							<a data-value="95">Ultra Rare</a>
+						</li>
+						<li>
+							<a data-value="99">Super Rare</a>
+						</li>
+						<li>
+							<a data-value="101">Special</a>
+						</li>
+						<li>
+							<a data-value="180">Retired</a>
+						</li>
+					</ul>
+					</div>
+				</div>
+				<!--<select name="rarityGuide" class="input-mediumsmall">
+					<option></option>
+					<option value="75">Uncommon</option>
+					<option value="85">Rare</option>
+					<option value="90">Very Rare</option>
+					<option value="95">Ultra Rare</option>
+					<option value="99">Super Rare</option>
+					<option value="101">Special</option>
+					<option value="180">Retired</option>
+				</select>-->
+			</label>
+			<label for="type">
+				<select name="type" class="" style="width: 140px;">
+					<option value="">(Any Type)</option>
+				</select>
+			</label>
+			<label for="sort" style="float: right;">
+				Sort
+				<select name="sort" class="input-mediumsmall">
+					<option value="obj_info_id">Released</option>
+					<option value="rarity">Rarity</option>
+					<option value="qty">Quantity</option>
+					<option value="name">Name</option>
+					<option value="type">Type</option>
+				</select>
+				<select name="sortWay" style="width: 75px;">
+					<option value="ASC">Up</option>
+					<option value="DESC">Down</option>
+				</select>
+			</label>
+		</form>
+		</div>
+	</div>
+	<form name="itemForm" action="http://www.neopets.com/process_safetydeposit.phtml?checksub=scan" method="POST">
+	<input type="hidden" name="category" value="0" />
+	<input type="hidden" name="offset" value="0" />
+	<table class="items table table-hover">
+	<tr>
+		<th>Image</th><th>Name</th><th>Type</th><th>Folder</th><th>Qty</th><th>Action</th>
+	</tr>
+	</table>
+	</form>
+	<div class="noresults hidden alert alert-info">
+		No results.
+	</div>
+	<div class="error hidden alert alert-error"></div>
+	<div class="msg hidden alert alert-success"></div>
+	<div class="action">
+		<!--<span class="selectLinks">
+			Select
+			<a class="selectAll">All</a>,
+			<a class="selectOne">One</a>,
+			<a class="selectLeave">Leave One</a>,
+			<a class="selectNone">None</a>
+		</span>-->
+		<div class="btn-group selectLinks">
+			<a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#">
+				Select
+				<span class="caret"></span>
+			</a>
+			<ul class="dropdown-menu">
+				<li>
+					<a data-action="all">All</a>
+				</li>
+				<li>
+					<a data-action="one">One</a>
+				</li>
+				<li>
+					<a data-action="none">None</a>
+				</li>
+				<li>
+					<a data-action="leaveOne">Keep One</a>
+				</li>
+			</ul>
+		</div>
+		<span class="pageLinks">
+			<a class="pageLink previous hidden">Previous</a>
+			<b class="pageNumbers"></b>
+			<a class="pageLink next hidden">Next</a>
+		</span>
+		<form class="form form-inline" name="actionForm">
+			<label for="action">
+				Move to:
+				<select name="action" class="input-small">
+					<option>Inventory</option>
+					<option>Folder</option>
+				</select>
+				<input type="text" name="folder" id="folder" class="input-small" style="display: none;" placeholder="None" pattern="[ .A-Za-z0-9]+" />
+			</label>
+			<button class="btn btn-primary" id="action-button">Go</button>
+		</form>
+	</div>
+</body>
+</html>

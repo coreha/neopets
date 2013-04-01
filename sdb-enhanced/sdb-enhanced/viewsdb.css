@@ -1,0 +1,147 @@
+body {
+	min-width: 740px;
+}
+
+.search { width: 720px; margin: 0 auto; }
+
+.searchContainer {
+	position: fixed;
+	top: 0px;
+	width: 100%;
+	background:rgba(255,255,255,0.9);
+}
+
+.search input::-webkit-outer-spin-button,
+.search input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.search ul.dropdown-menu {
+	text-align: left;
+	margin-left: -100px;
+}
+
+.action ul.dropdown-menu {
+	top: -120px;
+	min-width: 10px;
+}
+
+form[name=itemForm] {
+	margin-top: 85px;
+}
+
+::-webkit-scrollbar {
+	height: 12px;
+	width: 12px;
+	background: #ededed;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.35);
+	-webkit-border-radius: 1ex;
+}
+::-webkit-scrollbar-corner {
+	background: #000;
+}
+
+/* Fluffy */
+a.popout {
+	cursor: pointer;
+	padding: 2px 7px 0;
+	z-index: 2;
+}
+
+.selectLinks {
+	background: #ededed;
+	position: absolute;
+	left: 0px;
+	padding-left: 10px;
+}
+.selectLinks a {
+	cursor: pointer;
+}
+
+span.pageLinks {
+	position: absolute;
+	right: 0px;
+	padding-top: 5px;
+	padding-right: 10px;
+}
+span.pageLinks a {
+	padding: 0 10px;
+	cursor: pointer;
+}
+
+div.pagelink {
+	padding: 10px;
+	cursor: pointer;
+}
+
+/* Search */
+.input-tiny {
+	width: 45px;
+	text-align: center;
+}
+.input-mediumsmall {
+	width: 110px;
+}
+.input-full {
+	width: 80%;
+	text-align: center;
+}
+
+#search {
+	margin-bottom: 5px;
+}
+
+div.search {
+	text-align: center;
+}
+div.search form {
+	margin: 10px 0;
+}
+
+/* Table */
+.items {
+	margin-bottom: 35px;
+}
+.items td:first-child {
+	padding-left: 0;
+}
+.items td {
+	vertical-align: middle;
+}
+.items img {
+	width: 80px;
+	height: 80px;
+}
+.hidden {
+	display: none !important;
+}
+
+.noresults, .error, .action, .msg {
+	position: fixed;
+	bottom: 0px;
+	margin-bottom: 0px;
+	margin-top: 20px;
+	width: 100%;
+	text-align: center;
+	font-weight: bold;
+}
+.noresults, .error, .msg {
+	z-index: 3;
+}
+.action {
+	z-index: 1;
+	padding: 5px 0;
+	background: #ededed;
+}
+
+/* Bootstrap overrides */
+select.input-small {
+	width: 100px;
+}
+
+div.action form, div.action label {
+	margin-bottom: 0px;
+}
