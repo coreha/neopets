@@ -9,24 +9,24 @@ chrome.tabs.onUpdated.addListener(neoUrl);
 var db;
 db = openDatabase('sdb', '1.0', 'sdb items', 200 * 1024 * 1024);
 db.transaction(function (tx) {
-	// tx.executeSql('DROP TABLE IF EXISTS items');
-	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT default "None", qty INTEGER, rarity INTEGER)');
+	tx.executeSql('DROP TABLE IF EXISTS items');
+	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT default "None", qty INTEGER, rarity INTEGER, wearable INTEGER)');
 });
 
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log(sender.tab ?
-                "from a content script:" + sender.tab.url :
-                "from the extension");
+    //console.log(sender.tab ?
+    //            "from a content script:" + sender.tab.url :
+    //            "from the extension");
     //console.log( request );
     
     $.each( request, function ( index, item ) {
     	(function (item) {
     		db.transaction(function (tx) {
-	    		tx.executeSql('INSERT OR REPLACE INTO items VALUES (?, ?, ?, ?, ?, coalesce((SELECT folder FROM items WHERE obj_info_id = ?), "None"), ?, ?)',
-	    			[item.obj_info_id, item.name, item.desc, item.img, item.type, item.obj_info_id, item.qty, item.rarity],
-	    			function (tx, results) { console.log(results); },
-	    			function (tx, results) { console.log(results); }
+	    		tx.executeSql('INSERT OR REPLACE INTO items VALUES (?, ?, ?, ?, ?, coalesce((SELECT folder FROM items WHERE obj_info_id = ?), "None"), ?, ?, ?)',
+	    			[item.obj_info_id, item.name, item.desc, item.img, item.type, item.obj_info_id, item.qty, item.rarity, item.wearable]//,
+	    			//function (tx, results) { console.log(results); },
+	    			//function (tx, results) { console.log(results); }
 	    		);
     		});
     	})(item);

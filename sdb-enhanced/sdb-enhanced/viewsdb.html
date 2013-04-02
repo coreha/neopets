@@ -26,11 +26,24 @@
 			<a class="popout popoutLink" style="float: right; padding-right: 0px;"><img alt="New Window" src="/images/open_in_new_window.png"></a>
 			<a class="popout settingsLink" style="float: right;"><img alt="Change Settings" src="/images/settings-icon.png"></a>
 			<br/>
-			<label for="folder" style="float: left;">
+			<!--<label for="folder" style="float: left;">
 				<select name="folder" class="input-medium">
 					<option value="">(Any Folder)</option>
 				</select>
-			</label>
+			</label>-->
+			<div class="input-append folder-label">
+				<input type="text" class="input-mediumsmall" name="folder" placeholder="(Any Folder)" />
+				<div class="btn-group">
+					<button class="btn dropdown-toggle" data-toggle="dropdown">
+						<span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu folderGuide">
+						<li>
+							<a>(Any Folder)</a>
+						</li>
+					</ul>
+				</div>
+			</div>
 			<label for="rarity">
 				Rarity
 				<select name="rarityType" class="input-tiny">

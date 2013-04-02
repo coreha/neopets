@@ -43,8 +43,14 @@ try {
 var db;
 db = openDatabase('sdb', '1.0', 'sdb items', 200 * 1024 * 1024);
 db.transaction(function (tx) {
-	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT, qty INTEGER, rarity INTEGER)');
+	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT default "None", qty INTEGER, rarity INTEGER, wearable INTEGER)');
 });
+
+var sdb = {
+	types: [],
+	folders: [],
+	rarities: []
+};
 
 function updateFolders () {
 	db.transaction( function (tx) {
@@ -103,8 +109,9 @@ function restoreState () {
 	searchForm.regex.checked= ~~state.regexChecked;
 	window.rarityLastValue	= state.rarity;
 	searchForm.type.value	= state.type;
+	searchForm.folder.value	= state.folder;
 	
-	$.each([searchForm.folder, searchForm.rarityType, searchForm.sort, searchForm.sortWay],
+	$.each([searchForm.rarityType, searchForm.sort, searchForm.sortWay],
 		function (index, item) {
 			for ( var i = 0; i < item.options.length; i++ ) {
 				if ( item.options[i].value == state[item.name] ) {
@@ -144,6 +151,7 @@ function saveState () {
 	state.regexChecked	= ~~searchForm.regex.checked;
 	state.rarity		= searchForm.rarity.value;
 	state.type			= document.searchForm.type.value;
+	state.folder		= searchForm.folder.value;
 	
 	$.each([searchForm.folder, searchForm.rarityType, searchForm.sort, searchForm.sortWay],
 		function (index, item) {
@@ -160,10 +168,6 @@ function saveState () {
 	localStorage["state"] = JSON.stringify(state);
 }
 
-var folders = [];
-var types = [];
-var rarities = [];
-
 function bindLinks() {
 	$('a.popoutLink').bind("click",
 		function () {
@@ -179,6 +183,7 @@ function bindLinks() {
 	
 	$('a.pageLink.next').bind("click",
 		function () {
+			window.scrollBy( 0, -window.scrollY );
 			state.page++;
 			getResults();
 		}
@@ -186,6 +191,7 @@ function bindLinks() {
 	
 	$('a.pageLink.previous').bind("click",
 		function () {
+			window.scrollBy( 0, -window.scrollY );
 			state.page--;
 			getResults();
 		}
@@ -213,41 +219,6 @@ function bindLinks() {
 			});
 		}
 	});
-	
-	/*
-	// No longer used (replaced with dropdown).
-	$('a.selectAll').bind("click",
-		function () {
-			$('.items input[type=number]').each( function (index, item) {
-				item.value = $(item).closest('tr').data('qty');
-			});
-		}
-	);
-	
-	$('a.selectOne').bind("click",
-		function () {
-			$('.items input[type=number]').each( function (index, item) {
-				item.value = 1;
-			});
-		}
-	);
-	
-	$('a.selectLeave').bind("click",
-		function () {
-			$('.items input[type=number]').each( function (index, item) {
-				item.value = $(item).closest('tr').data('qty') - 1;
-			});
-		}
-	);
-	
-	$('a.selectNone').bind("click",
-		function () {
-			$('.items input[type=number]').each( function (index, item) {
-				item.value = 0;
-			});
-		}
-	);
-	*/
 }
 
 $(document).ready( function () {
@@ -323,8 +294,8 @@ $(document).ready( function () {
 	$('div.action #action-button').bind('click', function (e) {
 		e.preventDefault();
 		
-		this.setAttribute('disabled', 'true');
-
+		$('#action-button').attr('disabled', 'disabled');
+		
 		var itemArray = $(document.itemForm).serializeArray();
 			itemArray = $.grep(itemArray, function ( obj, index ) {
 				return ( obj.value !== "0" );
@@ -373,9 +344,10 @@ $(document).ready( function () {
 			});
 			
 			console.log(itemArray);
+			getResults(true);
 		}
 		
-		this.removeAttribute('disabled');
+		$('#action-button').removeAttr('disabled');
 	});
 
 });
@@ -395,7 +367,7 @@ function doReduce ( obj_info_id, newAmount ) {
 
 function handleReduced (tx, results) {
 	console.log(results);
-	getResults();
+	getResults(true);
 }
 
 function moveCompleted (tx, results) {
@@ -406,28 +378,39 @@ function moveCompleted (tx, results) {
 }
 
 function listFolders (tx, results) {
-	for (var row = 0; row < results.rows.length; row++)
-		folders.push(results.rows.item(row).folder);
+	sdb.folders = [];
 	
+	for (var row = 0; row < results.rows.length; row++)
+		sdb.folders.push(results.rows.item(row).folder);
+	
+	/*
 	$('select[name=folder]').find('option[value!=""]').remove();
 		
-	$.each( folders, function ( index, folder ) {
+	$.each( sdb.folders, function ( index, folder ) {
 		$('select[name=folder]').append('<option>' + folder + '</option>');
 	});
-	
-	$(document.actionForm.folder).autocomplete({ source: folders, position: { "collision": "flip" } });
+	*/
+	$.each ( sdb.folders, function ( index, folder ) {
+		var li = document.createElement('li');
+		$('<a>', { "data-value": folder, "textContent": folder }).appendTo(li);
+		$('.searchForm .folderGuide').append(li);
+	});
+	$(document.searchForm.folder).autocomplete({ source: sdb.folders });
+	$(document.actionForm.folder).autocomplete({ source: sdb.folders, position: { "collision": "flip" } });
 	
 	// Update Types after Folders
 	updateTypes();
 }
 
 function listTypes (tx, results) {
+	sdb.types = [];
+	
 	for (var row = 0; row < results.rows.length; row++)
-		types.push(results.rows.item(row).type);
+		sdb.types.push(results.rows.item(row).type);
 	
 	$(document.searchForm.type).find('option[value!=""]').remove();
 	
-	$.each( types, function ( index, type ) {
+	$.each( sdb.types, function ( index, type ) {
 		$(document.searchForm.type).append('<option>' + type + '</option>');
 	});
 	
@@ -436,8 +419,10 @@ function listTypes (tx, results) {
 }
 
 function listRarity (tx, results) {
+	sdb.rarities = [];
+	
 	for (var row = 0; row < results.rows.length; row++)
-		rarities.push(""+results.rows.item(row).rarity);
+		sdb.rarities.push(""+results.rows.item(row).rarity);
 		
 	rarityMap = [
 		{label: "Retired", value: 180},
@@ -487,7 +472,8 @@ function updateView (tx, results) {
 		endNum = results.rows.length;
 	}
 	
-	var numPages = Math.floor(results.rows.length / settings.itemsPerPage) + 1;
+	var numPages = Math.floor( ( results.rows.length + settings.itemsPerPage - 1 ) / settings.itemsPerPage );
+	
 	$('b.pageNumbers').text( (state.page+1) + ' / ' + numPages );
 
 	console.log("Start:", startNum, "End:", endNum);
@@ -550,10 +536,11 @@ function delayedResults () {
 	this.timeoutID = setTimeout( function () { getResults(); }, 300 );
 }
 
-function getResults () {
+function getResults (force) {
 
+	
 	var data = $(document.searchForm).serialize() + state.page;
-	if ( data === this.lastsearch ) {
+	if ( !force && data === this.lastsearch ) {
 		return;
 	}
 	

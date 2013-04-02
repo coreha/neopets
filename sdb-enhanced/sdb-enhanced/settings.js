@@ -1,7 +1,7 @@
 var db;
 db = openDatabase('sdb', '1.0', 'sdb items', 200 * 1024 * 1024);
 db.transaction(function (tx) {
-	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT, qty INTEGER, rarity INTEGER)');
+	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT default "None", qty INTEGER, rarity INTEGER, wearable INTEGER)');
 });
 
 function getSettings () {

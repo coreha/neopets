@@ -1,3 +1,7 @@
+html {
+	min-height: 360px;
+}
+
 body {
 	min-width: 740px;
 }
@@ -17,9 +21,17 @@ body {
 	margin: 0;
 }
 
+.folder-label {
+	float: left;
+}
+
 .search ul.dropdown-menu {
 	text-align: left;
 	margin-left: -100px;
+}
+
+.search .folder-label ul.dropdown-menu {
+	margin-left: -125px;
 }
 
 .action ul.dropdown-menu {
