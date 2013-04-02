@@ -120,9 +120,9 @@ if ( window.location.pathname == "/ssw-popout" && document.title != "SSW" ) {
 	'					var searchingFor;'+
 	'					search_str = $(\'#sswsearch\').find(\':input[name="shopwizard"]\').val();'+
 	'					$(\'#results\').html(sswob[\'html\']);'+
-	'					searchingFor = "Searching for \'%1$s\', matching \'%2$s\'...";'+
-	'					searchingFor = searchingFor.replace(/%1\\$s/, search_str);'+
-	'					searchingFor = searchingFor.replace(/%2\\$s/, sswob[\'req\'][\'item_name\']);'+
+	'					searchingFor = "Searching for \'" + search_str + "\', matching \'" + sswob[\'req\'][\'item_name\'] + "\'...";'+
+	'					/*searchingFor = searchingFor.replace(/%1\\$s/, search_str);'+
+	'					searchingFor = searchingFor.replace(/%2\\$s/, sswob[\'req\'][\'item_name\']);*/'+
 	'					$(\'#search_for\').html(searchingFor);'+
 	'					$(\':input[name="shopwizard"]\').val( sswob[\'req\'][\'search\']);'+
 	'					$(\':input[name="sw_type"]\').val( sswob[\'req\'][\'search\']);'+
