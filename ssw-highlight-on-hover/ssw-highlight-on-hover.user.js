@@ -48,3 +48,14 @@ document.getElementById('ssw-tabs-2').querySelector('#results').addEventListener
 	selection.removeAllRanges();
 	selection.addRange(range);
 });
+
+// For items in shop
+[].forEach.call(document.body.querySelectorAll('td[bgcolor="#ffffcc"]:first-child'), function (e) {
+	e.addEventListener("mouseover", function () {
+		var selection = window.getSelection();
+		var range = document.createRange();
+		range.selectNodeContents(e.querySelector('b'));
+		selection.removeAllRanges();
+		selection.addRange(range);
+	})
+});
