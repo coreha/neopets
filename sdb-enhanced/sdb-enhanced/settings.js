@@ -10,7 +10,7 @@ function getSettings () {
 		"showSort":		1,
 		"showFolder":	1,
 		"regexSearch":	1,
-		"ItemsPerPage":	10
+		"itemsPerPage":	10
 	};
 
 	try {

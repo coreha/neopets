@@ -7,7 +7,6 @@
 
 	"permissions": [
 		"http://www.neopets.com/",
-		"http://items.jellyneo.net/",
 		"unlimitedStorage",
 		"webRequest",
 		"webRequestBlocking",
@@ -22,7 +21,7 @@
 	}
 	],
 	"page_action": {
-		"default_icon": "images/icon-19.png",
+		"default_icon": "images/icon-128.png",
 		"default_title": "Open SDB",
 		"default_popup": "viewsdb.html"
 	},

@@ -85,7 +85,7 @@ function restoreState () {
 	var defaultState = {
 		"search":		"",
 		"regexChecked":	0,
-		"folder":		"(Any Folder)",
+		"folder":		"",
 		"rarityType":	"=",
 		"rarity":		"",
 		"rarityGuide":	"",
@@ -218,6 +218,11 @@ function bindLinks() {
 				item.value = 0;
 			});
 		}
+	});
+	
+	$('.folderGuide').delegate('a', "click", function () {
+		document.searchForm.folder.value = $(this).data('value');
+		$(document.searchForm.folder).change();
 	});
 }
 
@@ -390,11 +395,14 @@ function listFolders (tx, results) {
 		$('select[name=folder]').append('<option>' + folder + '</option>');
 	});
 	*/
+	$('.folderGuide').find('a[data-value!=""]').remove();
+	
 	$.each ( sdb.folders, function ( index, folder ) {
 		var li = document.createElement('li');
-		$('<a>', { "data-value": folder, "textContent": folder }).appendTo(li);
-		$('.searchForm .folderGuide').append(li);
+		$('<a>', { "data-value": folder, "text": folder }).appendTo(li);
+		$('.folderGuide').append(li);
 	});
+	
 	$(document.searchForm.folder).autocomplete({ source: sdb.folders });
 	$(document.actionForm.folder).autocomplete({ source: sdb.folders, position: { "collision": "flip" } });
 	
