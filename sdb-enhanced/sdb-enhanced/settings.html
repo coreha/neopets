@@ -47,15 +47,21 @@ body {
 </head>
 <body>
 <div class="container">
-	<form class="form form-options form-horizontal" name="optionsForm">
+	<form class="form form-options form-horizontal optionsForm" name="optionsForm">
 		<h2>Options</h2>
 		<div class="control-group">
 			<label class="control-label" for="showRarity">Show Rarity</label>
 			<div class="controls">
-				<input type="checkbox" name="showRarity" />
+				<input type="checkbox" id="showRarity" name="showRarity" />
 			</div>
 		</div>
-		<div class="control-group">
+		<div class="control-group" title="Shows descriptions on hover.">
+			<label class="control-label" for="showDescriptions">Show Descriptions</label>
+			<div class="controls">
+				<input type="checkbox" id="showDescriptions" name="showDescriptions" />
+			</div>
+		</div>
+		<!--<div class="control-group">
 			<label class="control-label" for="showSort">Show Sorting</label>
 			<div class="controls">
 				<input type="checkbox" name="showSort" />
@@ -67,26 +73,51 @@ body {
 				<input type="checkbox" name="showFolder" />
 			</div>
 		</div>
-		<div class="control-group">
+		-->
+		<div class="control-group regexSearch">
 			<label class="control-label" for="regexSearch">Enable Regex Search</label>
 			<div class="controls">
-				<input type="checkbox" name="regexSearch" />
+				<input type="checkbox" id="regexSearch" name="regexSearch" />
 			</div>
 		</div>
-		<div class="control-group">
+		<div class="control-group lookupRarities">
+			<label class="control-label" for="lookupRarities">Lookup Rarities</label>
+			<div class="controls">
+				<input type="checkbox" id="lookupRarities" name="lookupRarities" />
+			</div>
+		</div>
+		<div class="control-group notifications">
+			<label class="control-label" for="notifications">Notifications</label>
+			<div class="controls">
+				<select class="input-block-level" id="notifications" name="notifications">
+					<option value="0">Never</option>
+					<option value="1">SDB Opened</option>
+					<option value="2">Items added</option>
+				</select>
+			</div>
+		</div>
+		<div class="control-group" title="Higher than 50 is not recommended, and may cause slowness.">
 			<label class="control-label" for="itemsPerPage">Items Per Page</label>
 			<div class="controls">
-				<select class="input-block-level" name="itemsPerPage">
+				<select class="input-block-level" id="itemsPerPage" name="itemsPerPage">
 					<option>10</option>
 					<option>25</option>
 					<option>50</option>
 					<option>100</option>
 					<option>1000</option>
-					<option>10000</option>
 				</select>
 			</div>
 		</div>
 		<div class="alert alert-warning alert-block hidden itemsPerPageWarning"></div>
+		<!--
+		MAY implement this in future versions to make retrieving information on new items more user-friendly. No data is shared in current versions, and if added in future versions the feature will require explicit approval.
+		<div class="control-group shareData">
+			<label class="control-label" for="shareData">Share anonymous<br/>item information</label>
+			<div class="controls">
+				<input type="checkbox" id="shareData" name="shareData" />
+			</div>
+		</div>
+		-->
 		<button class="btn btn-primary btn-large input-block-level" name="save">Save</button>
 		<h3>Existing Folders</h3>
 		<table class="folder-container table table-striped">
@@ -95,7 +126,10 @@ body {
 		<h3>Empty Database</h3>
 		<button class="btn btn-warning btn-large input-block-level" name="empty">Empty</button>
 		<p></p>
-		<div class="alert alert-info alert-block"><p>If the database is out of sync with your SDB, you can empty it and add all of your items again.</p></div>
+		<div class="alert alert-info alert-block">
+			<p>If the database is out of sync with your SDB, you can empty it and add all of your items again.</p>
+			<p><h4>Note:</h4>Most erorrs can be resolved by viewing the item(s) in your normal SDB.</p>
+		</div>
 	</form>
 </div>
 </body>

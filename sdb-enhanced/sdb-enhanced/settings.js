@@ -1,35 +1,23 @@
-var db;
-db = openDatabase('sdb', '1.0', 'sdb items', 200 * 1024 * 1024);
-db.transaction(function (tx) {
-	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT default "None", qty INTEGER, rarity INTEGER, wearable INTEGER)');
-});
+var db = chrome.extension.getBackgroundPage().db.getDB();
+var settingsManager = chrome.extension.getBackgroundPage().settingsManager;
+var settings = settingsManager.settings();
 
 function getSettings () {
-	var defaultSettings = {
-		"showRarity":	1,
-		"showSort":		1,
-		"showFolder":	1,
-		"regexSearch":	1,
-		"itemsPerPage":	10
-	};
-
-	try {
-		settings = JSON.parse(localStorage["settings"]);
-	} catch (e) {
-		settings = defaultSettings;
-		localStorage["settings"] = JSON.stringify(settings);
-	}
 	
-	document.optionsForm.showRarity.checked		= settings.showRarity;
-	document.optionsForm.showSort.checked		= settings.showSort;
-	document.optionsForm.showFolder.checked		= settings.showFolder;
+	$('.optionsForm input[type=checkbox]').each(
+			function (index, input) {
+				input.checked = ~~settings[input.name];
+			});
+	document.optionsForm.lookupRarities.checked	= settings.lookupRarities;
 	document.optionsForm.regexSearch.checked	= settings.regexSearch;
 	
-	for ( var i = 0; i < document.optionsForm.itemsPerPage.options.length; i++ ) {
-		if ( document.optionsForm.itemsPerPage.options[i].value == settings.itemsPerPage ) {
-			document.optionsForm.itemsPerPage.options[i].selected = true;
+	['itemsPerPage', 'notifications'].forEach( function (setting) {
+		for ( var i = 0; i < document.optionsForm[setting].options.length; i++ ) {
+			if ( document.optionsForm[setting].options[i].value == settings[setting] ) {
+				document.optionsForm[setting].options[i].selected = true;
+			}
 		}
-	}
+	});
 	
 	if ( ~~document.optionsForm.itemsPerPage.value > 100 ) {
 		$('.itemsPerPageWarning').removeClass('hidden').html('<h3>Warning</h3>Setting items per page to higher than 100 is not recommended.');
@@ -39,6 +27,34 @@ function getSettings () {
 $(document).ready( function () {
 	getSettings();
 	updateFolderView();
+	$(document).tooltip();
+	$('.regexSearch').tooltip({ items: "div[class~=regexSearch]", content: "Regex must be a complete match.<br/><br/>To find an item with a name that is a single word and 12 characters long, you could use the following search:<br/><br/><pre>\\w{12}" });
+	$('.lookupRarities').tooltip({ items: "div[class~=lookupRarities]", content: "Uses the Neopets search to look up specific item rarities, as a logged out user.<br/><br/>If left unchecked, only rarity estimates will be available." });
+	$('.notifications').tooltip({ items: "div[class~=notifications]", content: "When you add previously unseen items to your SDB, you need to view them in the normal SDB for them to be added here.<br/<br/><br/><b>Never</b>: you will not be informed when items are missing information, and they will not show up until you view them in your normal SDB.<br/><br/><b>SDB Opened</b>:Shows a list when you open the extension, if applicable.<br/><br/><b>Items Added</b>: Shows a notification immediately when you add the item(s)." });
+	$('.shareData').tooltip({ items: "div[class~=shareData]", content: "Item data is shared only with explicit permission, and does not include any data that can be used to identify you or your account.<br/><br/>Shared data can be used for obtaining item info when you add items to your SDB via Quick Stock and Inventory.<br/><br/>Limited to: Item IDs, Names, Image urls, Descriptions, Rarities, and Types." });
+	
+	/*
+	MAY implement this in future versions to make retrieving information on new items more user-friendly. No data is shared in current versions, and if added in future versions the feature will require explicit approval.
+	$('.shareData input[type=checkbox]').click( function (e) {
+		this.checked = !this.checked;
+		var box = this;
+		if ( this.checked ) {
+			chrome.permissions.remove(
+				{ origins: ['http://neo.regex.be/'] },
+				function ( removed ) {
+					box.checked = !removed;
+				}
+			);
+		} else {
+			chrome.permissions.request(
+				{ origins: ['http://neo.regex.be/'] },
+				function ( granted ) {
+						box.checked = granted;
+				}
+			);
+		}
+	});
+	*/
 	
 	$(document.optionsForm.empty).bind("click", function (e) {
 		e.preventDefault();
@@ -52,14 +68,17 @@ $(document).ready( function () {
 	
 	$(document.optionsForm.save).bind("click", function (e) {
 		e.preventDefault();
-	
-		settings.showRarity		= ~~document.optionsForm.showRarity.checked;
-		settings.showSort		= ~~document.optionsForm.showSort.checked;
-		settings.showFolder		= ~~document.optionsForm.showFolder.checked;
-		settings.regexSearch	= ~~document.optionsForm.regexSearch.checked;
-		settings.itemsPerPage	= parseInt(document.optionsForm.itemsPerPage.value, 10);
 		
-		localStorage["settings"] = JSON.stringify(settings);
+		$('.optionsForm input[type=checkbox]').each(
+			function (index, input) {
+				settings[input.name] = ~~input.checked;
+			});
+		
+		['itemsPerPage', 'notifications'].forEach( function (setting) {
+			settings[setting] = parseInt(document.optionsForm[setting].value, 10);
+		});
+		
+		console.log( settingsManager.save(settings) );
 	});
 });
 

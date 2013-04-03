@@ -1,50 +1,5 @@
-/*
-var items = JSON.parse(localStorage["items"]);
-
-[
-	{	"desc": "Baaaaaa - ZAP!  Hee hee!",
-		"img": "http://images.neopets.com/items/lightninggun.gif",
-		"name": "Lightning Gun",
-		"obj_info_id": "568",
-		"qty": "1",
-		"rarity": 0,
-		"type": "Battle Magic" },
-	{	"desc": "A Negg is a Neopian delicacy.  *** WORTH 1 NEGG POINT AT THE NEGGERY ***",
-		"img": "http://images.neopets.com/items/negg.gif",
-		"name": "Negg",
-		"obj_info_id": "8",
-		"qty": "1",
-		"rarity": 0,
-		"type": "Food" }
-];
-
-console.log(localStorage["items"]);
-*/
-
-//var db = chrome.extension.getBackgroundPage().db;
-
-var defaultSettings = {
-	"showRarity":	1,
-	"showSort":		1,
-	"showFolder":	1,
-	"regexSearch":	1,
-	"itemsPerPage":	10
-};
-
-var settings;
-
-try {
-	settings = JSON.parse(localStorage["settings"]);
-} catch (e) {
-	settings = defaultSettings;
-	localStorage["settings"] = JSON.stringify(settings);
-}
-
-var db;
-db = openDatabase('sdb', '1.0', 'sdb items', 200 * 1024 * 1024);
-db.transaction(function (tx) {
-	tx.executeSql('CREATE TABLE IF NOT EXISTS items (obj_info_id INTEGER UNIQUE, name TEXT, desc TEXT, img TEXT, type TEXT, folder TEXT default "None", qty INTEGER, rarity INTEGER, wearable INTEGER)');
-});
+var settings = chrome.extension.getBackgroundPage().settingsManager.settings();
+var db = chrome.extension.getBackgroundPage().db.getDB();
 
 var sdb = {
 	types: [],
@@ -71,14 +26,12 @@ function updateRarities () {
 }
 
 function checkSettings () {
-	if ( !settings.showSort )
-		$('label[for=sort]').addClass('hidden');
-	if ( !settings.showRarity )
-		$('label[for=rarity]').addClass('hidden');
-	if ( !settings.showFolder )
-		$('label[for=folder]').addClass('hidden');
 	if ( !settings.regexSearch )
 		$('.regexSearch').addClass('hidden');
+	
+	if ( settings.lookupRarities ) {
+		chrome.extension.getBackgroundPage().lookupRarities();
+	}
 }
 
 function restoreState () {
@@ -144,6 +97,33 @@ function setInitialView () {
 		tx.executeSql('SELECT * FROM items ORDER BY obj_info_id ASC LIMIT ?', [settings.itemsPerPage], updateView, handleError);
 	});
 }
+
+// Check if the DB needs information for any items
+function checkIncomplete() {
+	db.transaction( function(tx) {
+		tx.executeSql('DELETE FROM incompleteItems WHERE name IN (SELECT name FROM items)', [],
+			function () {
+				db.transaction( function (tx) {
+					tx.executeSql('SELECT * FROM incompleteItems', [], handleIncomplete, handleError);
+				});
+			}
+		);
+	});
+}
+
+function handleIncomplete(tx, results) {
+	console.log( "Incomplete items:", results.rows.length );
+	if ( results.rows.length > 0 ) {
+		for ( i = 0; i < results.rows.length; i++ ) {
+			$('<li><a target="_blank" href="http://www.neopets.com/safetydeposit.phtml?obj_name=' +
+				encodeURIComponent(results.rows.item(i).name) + '&category=0">' +
+				results.rows.item(i).name + '</a></li>').appendTo('#incompleteItems ul');
+			console.log(results.rows.item(i).name);
+		}
+		$('#incompleteItems').dialog({ "width": "550px", hide: { effect: "drop" } });
+	}
+}
+
 
 function saveState () {
 	var searchForm		= document.searchForm;
@@ -234,7 +214,8 @@ $(document).ready( function () {
 	updateRarities();
 	checkSettings();
 	// restoreState(); // Called by updateRarities
-	// setInitialView(); 
+	checkIncomplete();
+	// setInitialView();
 
 	/* Searching */
 	$('div.search input, div.search select').bind("keyup change click", delayedResults);
@@ -277,7 +258,7 @@ $(document).ready( function () {
 		$(document.searchForm.rarity).change();
 	});
 	
-	$('.error, .noresults').bind("click", function () { $(this).addClass('hidden'); } );
+	$('.error, .msg').bind("click", function () { $(this).addClass('hidden'); } );
 	
 	$('div.action select[name=action]').bind('change blur', function () {
 		if ( this.value == 'Folder' ) {
@@ -306,7 +287,8 @@ $(document).ready( function () {
 				return ( obj.value !== "0" );
 			});
 
-		if ( $('div.action select[name=action]').val() == 'Inventory' ) {
+		switch ( $('div.action select[name=action]').val() ) {
+		case 'Inventory':
 
 			$.post("http://www.neopets.com/process_safetydeposit.phtml?checksub=scan", $(document.itemForm).serialize()).done(
 				function (data) {
@@ -325,9 +307,10 @@ $(document).ready( function () {
 					} else {
 						handleError(null, {"message": "An Unexpected Error has occured."});
 					}
-				}
-			);
-		} else if ( $('div.action select[name=action]').val() == 'Folder' ) {
+				});
+		break;
+		
+		case 'Folder':
 		
 			var folder = document.actionForm.folder.value;
 			
@@ -347,9 +330,11 @@ $(document).ready( function () {
 			db.transaction( function (tx) {
 				tx.executeSql('UPDATE items SET folder = ? WHERE obj_info_id IN (' + itemArray.join(',') + ')', [folder], moveCompleted, handleError);
 			});
+			db.updateFolderMap();
 			
 			console.log(itemArray);
 			getResults(true);
+		break;
 		}
 		
 		$('#action-button').removeAttr('disabled');
@@ -487,42 +472,106 @@ function updateView (tx, results) {
 	console.log("Start:", startNum, "End:", endNum);
 
 	for (var row = startNum; row < endNum; row++) {
-		var item = results.rows.item(row);
-		
-		var tr = document.createElement('tr');
-		tr.setAttribute('class', 'item');
-		
-		var td = [];
-		for ( var i = 0; i < 6; i++ )
-			td.push ( document.createElement('td') );
+		updateView.addRow( results.rows.item(row) );
+	}
+	
+	if ( settings.showDescriptions ) {
+		$.ui.tooltip({track: true}, $('.items'));
+	}
+}
 
-		$('<img>', { "src": item.img }).appendTo(td[0]);
-		$('<b>', { "text": item.name }).appendTo(td[1]);
-		// $('<i>', { "text": item.desc }).appendTo(td[2]);
-		$('<b>', { "text": item.type }).appendTo(td[2]);
-		$('<b>', { "text": item.folder }).appendTo(td[3]);
-		$('<b>', { "text": item.qty }).appendTo(td[4]);
-		$('<input>', {	"type":"number",
-						"name":"back_to_inv[" + item.obj_info_id + "]",
-						"size":"3",
-						"min": "0",
-						"max": item.qty,
-						"value":"0",
-						"pattern":"\\\d+",
-						"class":"input-tiny removeQty" }).appendTo(td[5]);
-		
-		$(tr).attr({
-			"data-name": item.name,
-			"data-qty": item.qty,
-			"data-id": item.obj_info_id,
-			"title": item.desc
+updateView.addRow = function (item) {
+	const COLUMNS = 6;
+	var rowContainer = document.createDocumentFragment();
+
+	var tr = document.createElement('tr')
+	tr.setAttribute('class', 'item');
+	tr.setAttribute('title', item.desc);
+	tr.setAttribute('data-name', item.name);
+	tr.setAttribute('data-qty', item.qty);
+	tr.setAttribute('data-id', item.obj_info_id);
+	
+	rowContainer.appendChild(tr);
+	
+	var td = [];
+	for ( var i = 0; i < COLUMNS; i++ ) {
+		td.push ( document.createElement('td') );
+		tr.appendChild(td[i]);
+	}
+
+	td[0].appendChild( document.createElement('img') );
+	td[0].childNodes[0].setAttribute('src', item.img);
+	
+	[item.name, item.type, item.folder, item.qty].forEach(
+		function ( data, index ) {
+			index++;
+			td[index].appendChild( document.createElement('b') );
+			td[index].childNodes[0].innerText = data;
 		});
-		
-		$.each( td, function ( i, e ) {
-			tr.appendChild(e);
-		});
-		
-		$('table.items tbody')[0].appendChild(tr);
+
+	if ( settings.showRarity ) {
+		td[1].appendChild( document.createElement('span') );
+		td[1].childNodes[1].setAttribute('class', 'pull-right r' + updateView.normaliseRarity(item.rarity) );
+		td[1].childNodes[1].innerText = "r" + item.rarity;
+	}
+	
+	td[5].appendChild( document.createElement('input') );
+	jQuery(td[5].childNodes[0]).attr({
+		"type": "number",
+		"name": "back_to_inv[" + item.obj_info_id + "]",
+		"size": 3,
+		"min": 0,
+		"max": item.qty,
+		"value": 0,
+		"patern": "\\\d+",
+		"class": "input-tiny removeQty"});
+	
+	document.querySelector('table.items tbody').appendChild( rowContainer );
+}
+
+updateView.normaliseRarity = function ( rarity ) {
+	if ( rarity == 0 ) {
+		// Unknown rarity
+		return 0;
+	} else if ( rarity < 75 ) {
+		// No special colour
+		return 50;
+	} else if ( rarity <= 84 ) {
+		// Uncommon - 75-84
+		return 75;
+	} else if ( rarity <= 89 ) {
+		// Rare - 85-89
+		return 85;
+	} else if ( rarity <= 94 ) {
+		// Very Rare - 90-94
+		return 90;
+	} else if ( rarity <= 98 ) {
+		// Ultra Rare - 95-98
+		return 95;
+	} else if ( rarity == 99 ) {
+		// Super Rare - 99
+		return 99;
+	} else if ( rarity == 101 ) {
+		// Special - 101
+		return 101;
+	} else if ( rarity <= 110 ) {
+		// Mega Rare - 107-110
+		return 107;
+	} else if ( rarity < 180 ) {
+		// Rarity ###
+		return 115;
+	} else if ( rarity == 180 ) {
+		// Retired
+		return 180;
+	} else if ( rarity < 250 ) {
+		// Artifact
+		return 200;
+	} else if ( rarity == 500 ) {
+		// NC Mall
+		return 500;
+	} else {
+		// Unknown
+		return 999;
 	}
 }
 
@@ -546,13 +595,21 @@ function delayedResults () {
 
 function getResults (force) {
 
+	var searchData = $(document.searchForm).serialize();
+
+	if ( !force && this.lastSearch ) {
+		if ( searchData === this.lastSearch ) {
+			if ( state.page === this.lastPage ) {
+				return;
+			}
+		} else {
+			console.log("Last Search:", this.lastSearch);
+			// Reset to page 0 when changing search options
+			state.page = 0;
+		}
+	} 
 	
-	var data = $(document.searchForm).serialize() + state.page;
-	if ( !force && data === this.lastsearch ) {
-		return;
-	}
-	
-	console.log('Searching...', data);
+	console.log('Searching...', searchData);
 	
 	// There should be a better way to do this.
 	var baseQuery = 'SELECT * FROM items';
@@ -581,8 +638,14 @@ function getResults (force) {
 	}
 	
 	if ( document.searchForm.folder.value != "" ) {
-		queryFields.push('folder = ?');
-		queryParams.push( document.searchForm.folder.value );
+		// Allow "!folder" to show all folders except one
+		if ( document.searchForm.folder.value.indexOf("!") === 0 ) {
+			queryFields.push('folder != ?');
+			queryParams.push( document.searchForm.folder.value.substr(1) );
+		} else {
+			queryFields.push('folder = ?');
+			queryParams.push( document.searchForm.folder.value );
+		}
 	}
 	
 	if ( document.searchForm.type.value != "" ) {
@@ -615,6 +678,7 @@ function getResults (force) {
 		}
 	}); */
 	
-	this.lastsearch = data;
+	this.lastSearch	= searchData;
+	this.lastPage	= state.page;
 	saveState();
 }

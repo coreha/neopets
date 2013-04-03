@@ -6,22 +6,30 @@
 	"version": "1.0",
 
 	"permissions": [
+		"http://images.neopets.com/",
 		"http://www.neopets.com/",
 		"unlimitedStorage",
 		"webRequest",
 		"webRequestBlocking",
-		"tabs"
+		"notifications"
+	],
+	"optional_permissions": [
+		"http://neo.regex.be/"
 	],
 	"options_page": "settings.html",
 	"content_scripts": [
 	{
-		"matches": ["http://www.neopets.com/safetydeposit.phtml*"],
+		"matches": ["http://www.neopets.com/safetydeposit.phtml*",
+					"http://www.neopets.com/quickstock.phtml*",
+					"http://www.neopets.com/iteminfo.phtml*",
+					"http://www.neopets.com/search.phtml?selected_type=object&SDB&string=*"],
 		"js": ["jquery.min.js", "sdb-enhanced.js"],
-		"run_at": "document_end"
+		"run_at": "document_end",
+		"all_frames": true
 	}
 	],
-	"page_action": {
-		"default_icon": "images/icon-128.png",
+	"browser_action": {
+		"default_icon": "images/icon-19.png",
 		"default_title": "Open SDB",
 		"default_popup": "viewsdb.html"
 	},
@@ -30,5 +38,11 @@
 	},
 	"icons": {
 		"128": "images/icon-128.png"
-	}
+	},
+	"web_accessible_resources": [
+		"images/icon-128.png",
+		"lib/bootstrap/bootstrap.css",
+		"jquery.min.js",
+		"notifications.js"
+	]
 }

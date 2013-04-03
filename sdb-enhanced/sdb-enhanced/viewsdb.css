@@ -6,6 +6,37 @@ body {
 	min-width: 740px;
 }
 
+/* Rarities */
+.r0 {
+	font-style: italic;
+	content: rawr;
+}
+.r50 {
+	color: #000;
+}
+.r75, .r85, .r90, .r95, .r98, .r99 {
+	color: rgb(0, 128, 0); /* green */
+}
+.r101 {
+	color: #AA4455;
+}
+.r107 {
+	color: rgb(255, 165, 0); /* orange */
+}
+.r115 {
+	color: rgb(200, 0, 0); /* red */
+}
+.r180 {
+	color: #666666;
+}
+.r200 {
+	color: rgb(255, 0, 0); /* red */
+}
+.r999 {
+	color: #000;
+}
+	
+
 .search { width: 720px; margin: 0 auto; }
 
 .searchContainer {
@@ -19,6 +50,10 @@ body {
 .search input::-webkit-inner-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
+}
+
+a:focus {
+	outline: none !important;
 }
 
 .folder-label {

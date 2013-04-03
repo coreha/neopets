@@ -52,7 +52,7 @@
 					<option>&lt;</option>
 				</select>
 				<div class="input-append">
-					<input type="number" min="0" max="500" class="input-tiny" name="rarity" />
+					<input type="number" min="0" max="500" class="input-tiny" name="rarity" placeholder="(Any)" />
 					<div class="btn-group">
 						<button class="btn dropdown-toggle" data-toggle="dropdown">
 							<span class="caret"></span>
@@ -129,6 +129,11 @@
 	</form>
 	<div class="noresults hidden alert alert-info">
 		No results.
+	</div>
+	<div id="incompleteItems" title="Incomplete Items" style="display: none;">
+		<p>Items have been added to your SDB.</p>
+		<p>Click these links to add the information:</p>
+		<ul></ul>
 	</div>
 	<div class="error hidden alert alert-error"></div>
 	<div class="msg hidden alert alert-success"></div>
