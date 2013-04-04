@@ -1,5 +1,6 @@
-const VERSION	= chrome.app.getDetails().version;
-const DEBUG		= true;
+//"use strict";
+var VERSION	= chrome.app.getDetails().version;
+var DEBUG	= true;
 
 /**
  * Checks if the extension has been newly installed or updated.
@@ -82,6 +83,17 @@ db.executeQuery = function ( Query, data, success, error) {
 };
 
 /**
+ * For debug, pront all queries to the console.
+ */
+if ( DEBUG ) {
+	db._transaction = db.transaction;
+	db.transaction = function ( tx ) {
+		console.debug(tx);
+		db._transaction(tx);
+	}
+}
+
+/**
  * Settings Manager
  * @return Settings Manager instance
  * @id settingsManager
@@ -91,6 +103,7 @@ var settingsManager = (function () {
 	var defaultSettings = {
 		"showRarity":		1,
 		"showDescriptions":	1,
+		"maintainState":	1,
 		"regexSearch":		0,
 		"lookupRarities":	0,
 		"notifications":	2,
@@ -99,12 +112,21 @@ var settingsManager = (function () {
 	
 	var settings;
 	
-	validateSettings = function ( checkSettings ) {
+	var validateSettings = function ( checkSettings ) {
 		Object.keys(defaultSettings).forEach(
 			function (name) {
 				DEBUG && console.log(name, typeof checkSettings[name]);
+				/*
+				 * If the new settings do not contain a value that the default settings do,
+				 * then they are invalid and cannot be used. Default will be applied instead.
+				 */
 				if ( typeof checkSettings[name] == "undefined" ) {
-					throw "invalidSettingsException";
+					throw new TypeError( 'Missing setting: ' + name + ' (' + typeof defaultSettings[name] + ')' );
+				} else if ( typeof checkSettings[name] != typeof defaultSettings[name] ) {
+					throw new TypeError('Invalid Type for setting: ' + name +
+										'. got: ' + typeof checkSettings[name] +
+										', expected: ' + typeof defaultSettings[name]
+					);
 				}
 			});
 	};
@@ -113,7 +135,7 @@ var settingsManager = (function () {
 		settings = JSON.parse(localStorage["settings"]);
 		validateSettings( settings );
 	} catch (e) {
-		//console.log("Caught:", e, defaultSettings);
+		console.warn(e.name, e.message);
 		settings = defaultSettings;
 	}
 	
@@ -148,10 +170,11 @@ var settingsManager = (function () {
 			try {
 				validateSettings ( newSettings );
 				settings = newSettings;
-				localStorage["settings"] = JSON.stringify(settings);
+				// Only store settings that are defined in the defaults.
+				localStorage["settings"] = JSON.stringify(settings, Object.keys(defaultSettings));
 				return true;
 			} catch (e) {
-				console.log("Caught:", e, settings);
+				console.warn(e.name, e.message);
 				return false;
 			}
 		},
@@ -205,7 +228,7 @@ var actions = {
 	 * @param {Object} items
 	 */
 	add: function ( items ) {
-		$.each( request.items, function ( index, item ) {
+		$.each( items, function ( index, item ) {
 			(function (item) {
 				db.transaction(function (tx) {
 					tx.executeSql('INSERT OR REPLACE INTO items VALUES' +
@@ -237,7 +260,7 @@ var actions = {
 	 */
 	addIncomplete: function ( items ) {
 		var itemNames = [];
-		var seen = 0, total = Object.keys(request.items).length;
+		var seen = 0, total = Object.keys(items).length;
 		
 		$.each( items, function ( name, qty, items ) {
 			db.transaction(function (tx) {
@@ -256,7 +279,7 @@ var actions = {
 								function (tx, results) { DEBUG &&console.log(results); });
 							
 							itemNames.push( name );
-							console.log(itemNames);
+							DEBUG && console.log(itemNames);
 						}
 						
 						if ( ++seen === total ) {
@@ -281,9 +304,7 @@ var actions = {
 	 * @param {Object} item
 	 */
 	addRarity: function (item) {
-		db.transaction(function (tx) {
-					tx.executeSql('UPDATE items SET raritySet = 1, rarity = ?, desc = ?, img = ? WHERE name = ?', [item.rarity, item.desc, item.image, item.name], handleError, handleError);
-		});
+		db.executeQuery('UPDATE items SET raritySet = 1, rarity = ?, desc = ?, img = ? WHERE name = ?', [item.rarity, item.desc, item.image, item.name], function () {}, handleError);
 	},
 	
 	/**
@@ -291,9 +312,7 @@ var actions = {
 	 * @param {String} item
 	 */
 	rarityNotFound: function (item) {
-		db.transaction(function (tx) {
-					tx.executeSql('UPDATE items SET raritySet = 2 WHERE name = ?', [item], handleError, handleError);
-		});
+		db.executeQuery('UPDATE items SET raritySet = 2 WHERE name = ?', [item], function () {}, handleError);
 	}
 }
 

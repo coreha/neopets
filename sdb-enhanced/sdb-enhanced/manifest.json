@@ -12,6 +12,7 @@
 	"permissions": [
 		"http://images.neopets.com/",
 		"http://www.neopets.com/",
+		"storage",
 		"unlimitedStorage",
 		"webRequest",
 		"webRequestBlocking",
@@ -26,11 +27,26 @@
 	"options_page": "settings.html",
 	"content_scripts": [
 	{
-		"matches": ["http://www.neopets.com/safetydeposit.phtml*",
-					"http://www.neopets.com/quickstock.phtml*",
-					"http://www.neopets.com/iteminfo.phtml*",
-					"http://www.neopets.com/search.phtml?selected_type=object&SDB&string=*"],
+		"matches": ["http://www.neopets.com/safetydeposit.phtml*"],
 		"js": ["jquery.min.js", "sdb-enhanced.js"],
+		"run_at": "document_end",
+		"all_frames": true
+	},
+	{
+		"matches": ["http://www.neopets.com/quickstock.phtml*"],
+		"js": ["jquery.min.js", "quickstock.js"],
+		"run_at": "document_end",
+		"all_frames": true
+	},
+	{
+		"matches": ["http://www.neopets.com/iteminfo.phtml*"],
+		"js": ["jquery.min.js", "inventory.js"],
+		"run_at": "document_end",
+		"all_frames": true
+	},
+	{
+		"matches": ["http://www.neopets.com/search.phtml?selected_type=object&SDB&string=*"],
+		"js": ["jquery.min.js", "lookupinfo.js"],
 		"run_at": "document_end",
 		"all_frames": true
 	}

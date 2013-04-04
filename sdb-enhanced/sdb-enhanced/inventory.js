@@ -1,5 +1,3 @@
-/* No longer used, included in sdb-enhanced.js */
-
 $(document).ready( function () {
 	$('input#submit').click(function (e) {
 		// BUG: If user has old inventory page open, we can't detect errors.

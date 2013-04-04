@@ -1,7 +1,13 @@
-const Controller	= chrome.extension.getBackgroundPage();
-Controller || setTimeout(
+//"use strict";
+var Controller	= chrome.extension.getBackgroundPage();
+/*
+ * Show an informative message on errors.
+ */
+window.onerror = function (type, url, line) {
+	setTimeout(
 	function () {
-		jQuery('<div title="Unexpected Error"><h2>An error has occured.</h2><p>Please reload the extension, or restart your browser.</p></div>').appendTo('body').
+		jQuery('<div title="Unexpected Error"><h2>An error has occured.</h2><p>Please reload the extension, or restart your browser.</p>'+
+		'<pre>' + type + ' on line ' + line + '</pre></div>').appendTo('body').
 		dialog({
 			"modal": true,
 			"width": "500px",
@@ -12,54 +18,27 @@ Controller || setTimeout(
 		});
 		$('input').blur();
 	}, 0);
-
-const DEBUG = Controller.DEBUG;
+};
+var DEBUG = Controller.DEBUG;
 
 /**
+ * Retrieves read-only copy of current settings.
  * @see settingsManager
  */
-const settings = Controller.settingsManager.settings();
+var settings = Controller.settingsManager.settings();
 
 /**
  * @see db
  */
 var db = Controller.db.getDB();
+var state;
 
 var SDB = {
 	types: [],
-	folders: [],
-	rarities: []
+	folders: []
 };
 
-function updateFolders () {
-	db.transaction( function (tx) {
-		tx.executeSql('SELECT DISTINCT folder FROM items', [], listFolders, handleError);
-	});
-}
-
-function updateTypes () {
-	db.transaction( function (tx) {
-		tx.executeSql('SELECT DISTINCT type FROM items', [], listTypes, handleError);
-	});
-}
-
-function updateRarities () {
-	db.transaction( function (tx) {
-		tx.executeSql('SELECT DISTINCT rarity FROM items', [], listRarity, handleError);
-	});
-}
-
-function checkSettings () {
-	if ( settings.regexSearch )
-		$('.regexSearch').removeClass('hidden');
-	
-	if ( settings.lookupRarities ) {
-		Controller.lookupManager.run();
-		// Could check the return value and display a message.
-	}
-}
-
-function restoreState () {
+var stateManager = (function () {
 	var defaultState = {
 		"search":		"",
 		"regexChecked":	0,
@@ -72,49 +51,183 @@ function restoreState () {
 		"page":			0
 	};
 	
-	try {
-		state = JSON.parse(localStorage["state"]);
-	} catch (e) {
+	if ( settings.maintainState ) {
+		try {
+			state = JSON.parse(localStorage["state"]);
+			DEBUG && console.log("Restored state:", state);
+		} catch (e) {
+			DEBUG && console.warn("Couldn't restore state. Reverting to default state.");
+			state = defaultState;
+			localStorage["state"] = JSON.stringify(state);
+		}
+	} else {
 		state = defaultState;
-		localStorage["state"] = JSON.stringify(state);
 	}
 	
-	console.log("Restoring state:", state);
+	var listFolders = function (tx, results) {
+		SDB.folders = [];
+		
+		for (var row = 0; row < results.rows.length; row++)
+			SDB.folders.push(results.rows.item(row).folder);
+		
+		$('.folderGuide').find('a[data-value!=""]').remove();
+		
+		$.each ( SDB.folders, function ( index, folder ) {
+			var li = document.createElement('li');
+			$('<a>', { "data-value": folder, "text": folder }).appendTo(li);
+			$('.folderGuide').append(li);
+		});
+		
+		$(document.searchForm.folder).autocomplete({ source: SDB.folders });
+		$(document.actionForm.folder).autocomplete({ source: SDB.folders, position: { "collision": "flip" } });
+	};
 	
-	var searchForm			= document.searchForm;
-	searchForm.search.value	= state.search;
-	searchForm.rarity.value	= state.rarity;
-	searchForm.regex.checked= ~~state.regexChecked;
-	window.rarityLastValue	= state.rarity;
-	searchForm.type.value	= state.type;
-	searchForm.folder.value	= state.folder;
+	var listTypes = function (tx, results) {
+		SDB.types = [];
+		
+		for (var row = 0; row < results.rows.length; row++)
+			SDB.types.push(results.rows.item(row).type);
+		
+		$(document.searchForm.type).find('option[value!=""]').remove();
+		
+		$.each( SDB.types, function ( index, type ) {
+			$(document.searchForm.type).append('<option>' + type + '</option>');
+		});
+		
+		restoreState();
+	};
 	
-	$.each([searchForm.rarityType, searchForm.sort, searchForm.sortWay],
-		function (index, item) {
-			for ( var i = 0; i < item.options.length; i++ ) {
-				if ( item.options[i].value == state[item.name] ) {
-					item.options[i].selected = true;
-					break;
+	var restoreState = function () {
+		var searchForm			= document.searchForm;
+		searchForm.search.value	= state.search;
+		searchForm.rarity.value	= state.rarity;
+		searchForm.regex.checked= ~~state.regexChecked;
+		window.rarityLastValue	= state.rarity;
+		searchForm.folder.value	= state.folder;
+		
+		$.each([searchForm.rarityType, searchForm.sort, searchForm.sortWay, searchForm.type],
+			function (index, item) {
+				for ( var i = 0; i < item.options.length; i++ ) {
+					if ( item.options[i].value == state[item.name] ) {
+						item.options[i].selected = true;
+						break;
+					}
 				}
 			}
+		);
+		
+		window.getResults();
+	};
+	
+	/**
+	 * Handles items with incomplete information.
+	 * @param {Object} SQL Transaction
+	 * @param {Object} SQL Result Set
+	 */
+	var handleIncomplete = function (tx, results) {
+		DEBUG && console.log( "Incomplete items:", results.rows.length );
+		if ( results.rows.length > 0 ) {
+			/*
+			 * Create a list of links to searches for the items that need information
+			 * The user can then click them and the information will be automatically added.
+			 */
+			for ( i = 0; i < results.rows.length; i++ ) {
+				$('<li><a target="_blank" href="http://www.neopets.com/safetydeposit.phtml?obj_name=' +
+					encodeURIComponent(results.rows.item(i).name) + '&category=0">' +
+					results.rows.item(i).name + '</a></li>').appendTo('#incompleteItems ul');
+				console.log(results.rows.item(i).name);
+			}
+			// Show the list in an in-window popup. (See: jQuery-UI Dialog)
+			$('#incompleteItems').dialog({ "width": "550px", hide: { effect: "drop" } });
 		}
-	);
-	
-	if ( settings.regexSearch ) {
-		$('#search').css({"width": "572px"});
+	};
+		
+	return {
+		/**
+		 * Saves the state of the search form.
+		 * @return {Boolean} State saved
+		 */
+		save: function () {
+			if ( !settings.maintainState ) {
+				return false;
+			}
+			var searchForm		= document.searchForm;
+			state.search		= searchForm.search.value;
+			state.regexChecked	= ~~searchForm.regex.checked;
+			state.rarity		= searchForm.rarity.value;
+			state.type			= document.searchForm.type.value;
+			state.folder		= searchForm.folder.value;
+			
+			$.each([searchForm.folder, searchForm.rarityType, searchForm.sort, searchForm.sortWay],
+				function (index, item) {
+					state[item.name] = item.value;
+				}
+			);
+			
+			if ( JSON.stringify(state) == localStorage["state"] ) {
+				return false;
+			}
+			
+			DEBUG && console.log("Saving state: ", state);
+			localStorage["state"] = JSON.stringify(state, Object.keys(defaultState));
+			return true;
+		},
+		
+		/**
+		 * Restores essential elements for window state, then calls getResults()
+		 */
+		restore: function () {
+			this.checkSettings();
+			this.updateFolders();
+			this.updateTypes();
+			// restoreState will be called by listTypes(), which will then call getResults()
+			
+			this.checkIncomplete();
+		},
+		
+		/**
+		 * Checks settings, performs any actions that are required.
+		 */
+		checkSettings: function () {
+			if ( settings.regexSearch ) {
+				$('.regexSearch').removeClass('hidden');
+				$('#search').css({"width": "572px"});
+			}
+			
+			if ( settings.lookupRarities ) {
+				Controller.lookupManager.run();
+				// Could check the return value and display a message.
+			}
+		},
+		
+		/**
+		 * Updates SDB.folders, the list of folders used for selection and autocomplete.
+		 */
+		updateFolders: function () {
+			db.executeQuery('SELECT DISTINCT folder FROM items', [], listFolders, handleError);
+		},
+		
+		/**
+		 * Updates SDB.types, used for the selection on the search form.
+		 */
+		updateTypes: function () {
+			db.executeQuery('SELECT DISTINCT type FROM items', [], listTypes, handleError);
+		},
+		
+		/**
+		 * Checks if the DB needs information for any items.
+		 */
+		checkIncomplete: function () {
+			db.executeQuery('DELETE FROM incompleteItems WHERE name IN (SELECT name FROM items)', [],
+				function () {
+					db.transaction( function (tx) {
+						tx.executeSql('SELECT * FROM incompleteItems', [], handleIncomplete, handleError);
+					});
+				}
+			);
+		}
 	}
-	
-	// Autocomplete doesn't fire a change event until after blur
-	// This really shouldn't be necessary, but it is.
-	setInterval( function () {
-		if ( document.searchForm.rarity.value != window.rarityLastValue ) {
-			$(document.searchForm.rarity).change();
-			window.rarityLastValue = document.searchForm.rarity.value;
-		} }, 1000
-	);
-	
-	getResults();
-}
+})();
 
 /**
  * Sets initial view of search results.
@@ -128,59 +241,8 @@ function setInitialView () {
 }
 
 /**
- * Checks if the DB needs information for any items.
+ * Sets up event listeners.
  */
-function checkIncomplete() {
-	db.transaction( function(tx) {
-		tx.executeSql('DELETE FROM incompleteItems WHERE name IN (SELECT name FROM items)', [],
-			function () {
-				db.transaction( function (tx) {
-					tx.executeSql('SELECT * FROM incompleteItems', [], handleIncomplete, handleError);
-				});
-			}
-		);
-	});
-}
-/**
- * 
- */
-function handleIncomplete(tx, results) {
-	console.log( "Incomplete items:", results.rows.length );
-	if ( results.rows.length > 0 ) {
-		for ( i = 0; i < results.rows.length; i++ ) {
-			$('<li><a target="_blank" href="http://www.neopets.com/safetydeposit.phtml?obj_name=' +
-				encodeURIComponent(results.rows.item(i).name) + '&category=0">' +
-				results.rows.item(i).name + '</a></li>').appendTo('#incompleteItems ul');
-			console.log(results.rows.item(i).name);
-		}
-		$('#incompleteItems').dialog({ "width": "550px", hide: { effect: "drop" } });
-	}
-}
-
-
-function saveState () {
-	var searchForm		= document.searchForm;
-	state.search		= searchForm.search.value;
-	state.regexChecked	= ~~searchForm.regex.checked;
-	state.rarity		= searchForm.rarity.value;
-	state.type			= document.searchForm.type.value;
-	state.folder		= searchForm.folder.value;
-	
-	$.each([searchForm.folder, searchForm.rarityType, searchForm.sort, searchForm.sortWay],
-		function (index, item) {
-			state[item.name] = item.value;
-		}
-	);
-	
-	if ( JSON.stringify(state) == localStorage["state"] ) {
-		return;
-	}
-	
-	console.log("Saving state: ", state);
-	
-	localStorage["state"] = JSON.stringify(state);
-}
-
 function bindLinks() {
 	$('a.popoutLink').bind("click",
 		function () {
@@ -233,6 +295,34 @@ function bindLinks() {
 		}
 	});
 	
+	/*
+	 * Handles the rarity dropdown selection
+	 */
+	$('.rarityGuide a').bind("click", function () {
+		document.searchForm.rarity.value = $(this).data('value');
+		$(document.searchForm.rarity).change();
+	});
+	
+	/*
+	 * Dismiss messages when clicked.
+	 */
+	$('.error, .msg').bind("click", function () { $(this).addClass('hidden'); } );
+	
+	/*
+	 * Shows the folder selection box when 'folder' is selected
+	 * in the 'Move To' selection.
+	 */
+	$('div.action select[name=action]').bind('change blur', function () {
+		if ( this.value == 'Folder' ) {
+			$('div.action #folder').fadeIn('slow');
+		} else {
+			$('div.action #folder').fadeOut('slow');
+		}
+	});
+	
+	/*
+	 * Uses 'delegate' rather than 'bind' because the folders list is dynamically updated.
+	 */
 	$('.folderGuide').delegate('a', "click", function () {
 		document.searchForm.folder.value = $(this).data('value');
 		$(document.searchForm.folder).change();
@@ -240,14 +330,8 @@ function bindLinks() {
 }
 
 $(document).ready( function () {
-
 	bindLinks();
-	updateFolders();
-	//updateTypes(); // Called by updateFolders
-	updateRarities();
-	checkSettings();
-	// restoreState(); // Called by updateRarities
-	checkIncomplete();
+	stateManager.restore();
 	// setInitialView();
 
 	/* Searching */
@@ -279,28 +363,10 @@ $(document).ready( function () {
 	});
 	
 	/*
-	// Replaced with dropdown.
-	$(document.searchForm.rarityGuide).bind("change", function () {
-		document.searchForm.rarity.value = this.value;
-		$(document.searchForm.rarity).change();
-	});
-	*/
-	
-	$('.rarityGuide a').bind("click", function () {
-		document.searchForm.rarity.value = $(this).data('value');
-		$(document.searchForm.rarity).change();
-	});
-	
-	$('.error, .msg').bind("click", function () { $(this).addClass('hidden'); } );
-	
-	$('div.action select[name=action]').bind('change blur', function () {
-		if ( this.value == 'Folder' ) {
-			$('div.action #folder').fadeIn('slow');
-		} else {
-			$('div.action #folder').fadeOut('slow');
-		}
-	});
-	
+	 * Only allow valid numbers in the remove field.
+	 * If the number attempted to remove is higher than the number available,
+	 * Neopets will disregard the request.
+	 */
 	$('table.items').delegate('input.removeQty', 'change keyup blur', function () {
 		var parentQty = $(this).closest('tr').data('qty')
 		if ( this.value > parentQty ) {
@@ -314,6 +380,7 @@ $(document).ready( function () {
 		e.preventDefault();
 		
 		$('#action-button').attr('disabled', 'disabled');
+		$('#action-button').text('Loading...');
 		
 		var itemArray = $(document.itemForm).serializeArray();
 			itemArray = $.grep(itemArray, function ( obj, index ) {
@@ -340,6 +407,9 @@ $(document).ready( function () {
 					} else {
 						handleError(null, {"message": "An Unexpected Error has occured."});
 					}
+					
+					$('#action-button').removeAttr('disabled');
+					$('#action-button').text('Go');
 				});
 		break;
 		
@@ -367,10 +437,10 @@ $(document).ready( function () {
 			
 			console.log(itemArray);
 			getResults(true);
+			$('#action-button').removeAttr('disabled');
+			$('#action-button').text('Go');
 		break;
 		}
-		
-		$('#action-button').removeAttr('disabled');
 	});
 
 });
@@ -396,71 +466,8 @@ function handleReduced (tx, results) {
 function moveCompleted (tx, results) {
 	// Check affected rows...
 	
-	updateFolders();
-	getResults();
-}
-
-function listFolders (tx, results) {
-	SDB.folders = [];
-	
-	for (var row = 0; row < results.rows.length; row++)
-		SDB.folders.push(results.rows.item(row).folder);
-	
-	/*
-	$('select[name=folder]').find('option[value!=""]').remove();
-		
-	$.each( SDB.folders, function ( index, folder ) {
-		$('select[name=folder]').append('<option>' + folder + '</option>');
-	});
-	*/
-	$('.folderGuide').find('a[data-value!=""]').remove();
-	
-	$.each ( SDB.folders, function ( index, folder ) {
-		var li = document.createElement('li');
-		$('<a>', { "data-value": folder, "text": folder }).appendTo(li);
-		$('.folderGuide').append(li);
-	});
-	
-	$(document.searchForm.folder).autocomplete({ source: SDB.folders });
-	$(document.actionForm.folder).autocomplete({ source: SDB.folders, position: { "collision": "flip" } });
-	
-	// Update Types after Folders
-	updateTypes();
-}
-
-function listTypes (tx, results) {
-	SDB.types = [];
-	
-	for (var row = 0; row < results.rows.length; row++)
-		SDB.types.push(results.rows.item(row).type);
-	
-	$(document.searchForm.type).find('option[value!=""]').remove();
-	
-	$.each( SDB.types, function ( index, type ) {
-		$(document.searchForm.type).append('<option>' + type + '</option>');
-	});
-	
-	// Restore State after the page is ready.
-	restoreState(); 
-}
-
-function listRarity (tx, results) {
-	SDB.rarities = [];
-	
-	for (var row = 0; row < results.rows.length; row++)
-		SDB.rarities.push(""+results.rows.item(row).rarity);
-		
-	rarityMap = [
-		{label: "Retired", value: 180},
-		{label: "Special", value: 101},
-		{label: "Super Rare", value: 99},
-		{label: "Ultra Rare", value: 95},
-		{label: "Very Rare", value: 90},
-		{label: "Rare", value: 85},
-		{label: "Uncommon", value: 75},
-	];
-	
-	$(document.searchForm.rarity).autocomplete({ source: rarityMap, minLength: 0 });
+	stateManager.updateFolders();
+	getResults(true);
 }
 
 function updateView (tx, results) {
@@ -473,7 +480,7 @@ function updateView (tx, results) {
 		$('div.noresults').addClass('hidden');
 	}
 
-	console.log("Results:", results.rows.length, "Per Page:", settings.itemsPerPage);
+	DEBUG && console.log("Results:", results.rows.length, "Per Page:", settings.itemsPerPage);
 
 	state.page = ( results.rows.length > settings.itemsPerPage ) ? ~~state.page : 0;
 	
@@ -502,7 +509,7 @@ function updateView (tx, results) {
 	
 	$('b.pageNumbers').text( (state.page+1) + ' / ' + numPages );
 
-	console.log("Start:", startNum, "End:", endNum);
+	DEBUG && console.log("Start:", startNum, "End:", endNum);
 
 	for (var row = startNum; row < endNum; row++) {
 		updateView.addRow( results.rows.item(row) );
@@ -514,7 +521,7 @@ function updateView (tx, results) {
 }
 
 updateView.addRow = function (item) {
-	const COLUMNS = 6;
+	var COLUMNS = 6;
 	var rowContainer = document.createDocumentFragment();
 
 	var tr = document.createElement('tr')
@@ -635,13 +642,13 @@ function delayedResults () {
 function getResults (force) {
 	var searchData = $(document.searchForm).serialize();
 
-	if ( !force && this.lastSearch ) {
-		if ( searchData === this.lastSearch ) {
-			if ( state.page === this.lastPage ) {
+	if ( !force && getResults.lastSearch ) {
+		if ( searchData === getResults.lastSearch ) {
+			if ( state.page === getResults.lastPage ) {
 				return;
 			}
 		} else {
-			console.log("Last Search:", this.lastSearch);
+			console.log("Last Search:", getResults.lastSearch);
 			// Reset to page 0 when changing search options
 			state.page = 0;
 		}
@@ -670,9 +677,19 @@ function getResults (force) {
 		queryParams.push(searchText);
 	}
 	
-	if ( document.searchForm.rarity.value > 0 ) {
-		queryFields.push('rarity ' + document.searchForm.rarityType.value + ' ?');
-		queryParams.push( parseInt(document.searchForm.rarity.value, 10) );
+	if ( document.searchForm.rarity.value.length > 0 ){
+		var rarity;
+		
+		console.log( document.searchForm.rarity.value.match(/(\d{1,3})-(\d{1,3})/) );
+		
+		if ( rarity = document.searchForm.rarity.value.match(/(\d{1,3})-(\d{1,3})/) ) {
+			queryFields.push('rarity BETWEEN ? AND ?');
+			queryParams.push(rarity[1]);
+			queryParams.push(rarity[2]);
+		} else if ( ~~document.searchForm.rarity.value > 0 ) {
+			queryFields.push('rarity ' + document.searchForm.rarityType.value + ' ?');
+			queryParams.push( parseInt(document.searchForm.rarity.value, 10) );
+		}
 	}
 	
 	if ( document.searchForm.folder.value != "" ) {
@@ -701,7 +718,7 @@ function getResults (force) {
 	// baseQuery += ' LIMIT ?';
 	// queryParams.push( parseInt( settings.itemsPerPage, 10 ) );
 	
-	console.log( baseQuery, queryParams );
+	DEBUG && console.log( baseQuery, queryParams );
 	
 	db.transaction( function (tx) {
 		tx.executeSql(baseQuery, queryParams, updateView, handleError);
@@ -716,7 +733,9 @@ function getResults (force) {
 		}
 	}); */
 	
-	this.lastSearch	= searchData;
-	this.lastPage	= state.page;
-	saveState();
+	getResults.lastSearch	= searchData;
+	getResults.lastPage	= state.page;
+	if ( settings.maintainState ) {
+		stateManager.save();
+	}
 }

@@ -1,7 +1,13 @@
-const Controller	= chrome.extension.getBackgroundPage();
-Controller || setTimeout(
+//"use strict";
+var Controller	= chrome.extension.getBackgroundPage();
+/*
+ * Show an informative message on errors.
+ */
+window.onerror = function (type, url, line) {
+	setTimeout(
 	function () {
-		jQuery('<div title="Unexpected Error"><h2>An error has occured.</h2><p>Please reload the extension, or restart your browser.</p></div>').appendTo('body').
+		jQuery('<div title="Unexpected Error"><h2>An error has occured.</h2><p>Please reload the extension, or restart your browser.</p>'+
+		'<pre>' + type + ' on line ' + line + '</pre></div>').appendTo('body').
 		dialog({
 			"modal": true,
 			"width": "500px",
@@ -12,7 +18,8 @@ Controller || setTimeout(
 		});
 		$('input').blur();
 	}, 0);
-const DEBUG			= Controller.DEBUG;
+};
+var DEBUG			= Controller.DEBUG;
 var settingsManager	= Controller.settingsManager;
 var settings		= settingsManager.settings();
 var db				= Controller.db.getDB();
@@ -49,7 +56,9 @@ $(document).ready( function () {
 	MAY implement this as an OPTION in future versions to make retrieving information on new items more user-friendly.
 	No data is shared in current versions, and if added in future versions
 	the feature will require explicit approval, as seen here.
-
+	
+	Currently: Unimplemented.
+	
 	$('.shareData').tooltip({ items: "div[class~=shareData]", content: "Item data is shared only with explicit permission, and does not include any data that can be used to identify you or your account.<br/><br/>Shared data can be used for obtaining item info when you add items to your SDB via Quick Stock and Inventory.<br/><br/>Limited to: Item IDs, Names, Image urls, Descriptions, Rarities, and Types." });
 	
 	$('.shareData input[type=checkbox]').click( function (e) {
@@ -83,6 +92,7 @@ $(document).ready( function () {
 	
 	$(document.optionsForm.save).bind("click", function (e) {
 		e.preventDefault();
+		this.innerText = 'Saving...';
 		
 		$('.optionsForm input[type=checkbox]').each(
 			function (index, input) {
@@ -93,7 +103,16 @@ $(document).ready( function () {
 			settings[setting] = parseInt(document.optionsForm[setting].value, 10);
 		});
 		
-		DEBUG && console.log( settingsManager.save(settings) );
+		if ( settingsManager.save(settings) ) {
+			this.innerText = 'Saved';
+			setTimeout( function () {
+				document.optionsForm.save.innerText = 'Save';
+			}, 775);
+		} else {
+			$(this).removeClass('btn-primary').addClass('btn-error');
+			this.innerText = 'Error: Not Saved.';
+			this.setAttribute('disabled', 'disabled');
+		}
 	});
 });
 
