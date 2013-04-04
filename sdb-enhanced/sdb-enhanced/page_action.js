@@ -1,22 +1,37 @@
-const VERSION = chrome.app.getDetails().version;
-if ( typeof localStorage['version'] == "undefined" ) {
-	// New Install, show help page.
-	window.open( chrome.extension.getURL('/help.html') );
-	localStorage['version'] = VERSION;
-} else if ( localStorage['version'] != VERSION ) {
-	// Updated
-	
-	localStorage['version'] = VERSION;
-}
+const VERSION	= chrome.app.getDetails().version;
+const DEBUG		= true;
 
+/**
+ * Checks if the extension has been newly installed or updated.
+ * @param {String} url
+ */
+function checkInstalled ( url ) {
+	if ( typeof localStorage['version'] == "undefined" ) {
+		// New Install, show help page.
+		window.open( url );
+		localStorage['version'] = VERSION;
+	} else if ( localStorage['version'] != VERSION ) {
+		// Updated
+		window.open( url );
+		localStorage['version'] = VERSION;
+	}
+}
+checkInstalled( chrome.extension.getURL('/help.html') );
+
+/**
+ * WebSQL DB object
+ * @id db
+ */
 var db;
-db = openDatabase('sdb', '1.0', 'sdb items', 100 * 1024 * 1024);
-
-db.getDB = function () {
-	db.init();
-	return db;
+try {
+	db = openDatabase('sdb', '1.0', 'sdb items', 100 * 1024 * 1024);
+} catch (e) {
+	handleError (null, {"code": e.name, "message": e.message});
 }
 
+/**
+ * Creates tables if necessary.
+ */
 db.init = function () {
 	db.transaction(function (tx) {
 		// tx.executeSql('DROP TABLE IF EXISTS items');
@@ -27,23 +42,59 @@ db.init = function () {
 		tx.executeSql('CREATE TABLE IF NOT EXISTS itemFolders ( obj_info_id INTEGER UNIQUE, folderName TEXT )');
 		tx.executeSql('CREATE TABLE IF NOT EXISTS incompleteItems ( name TEXT UNIQUE, qty INTEGER )');
 	});
-}
+};
 db.init();
 
-db.updateFolderMap = function () {
-	db.transaction(function (tx) {
-		tx.executeSql('INSERT OR REPLACE INTO itemFolders ( obj_info_id, folderName ) SELECT obj_info_id, folder FROM items WHERE folder != "None"');
-	});
-}
+/**
+ * Asynchronously calls function to create tables, returns db object.
+ * @return db
+ */
+db.getDB = function () {
+	db.init();
+	return db;
+};
 
+/**
+ * Updates the table for storing item folders.
+ */
+db.updateFolderMap = function () {
+	db.executeQuery('INSERT OR REPLACE INTO itemFolders ( obj_info_id, folderName ) SELECT obj_info_id, folder FROM items WHERE folder != "None"');
+};
+
+/**
+ * Empty the items table, and re-create it.
+ */
+db.emptyDatabase = function () {
+	db.executeQuery('DROP TABLE items', [], db.init, handleError);
+};
+
+/**
+ * Wrapper to executeSql
+ * @param {String} Query
+ * @param {Array} data
+ * @param {Function} success
+ * @param {Function} error
+ */
+db.executeQuery = function ( Query, data, success, error) {
+	db.transaction( function (tx) {
+		tx.executeSql( Query, data, success, error );
+	});
+};
+
+/**
+ * Settings Manager
+ * @return Settings Manager instance
+ * @id settingsManager
+ * 
+*/
 var settingsManager = (function () {
 	var defaultSettings = {
-		"showRarity":	1,
-		"showDescriptions": 1,
-		"regexSearch":	0,
-		"lookupRarities": 0,
-		"notifications": 2,
-		"itemsPerPage":	10
+		"showRarity":		1,
+		"showDescriptions":	1,
+		"regexSearch":		0,
+		"lookupRarities":	0,
+		"notifications":	2,
+		"itemsPerPage":		10
 	};
 	
 	var settings;
@@ -51,7 +102,7 @@ var settingsManager = (function () {
 	validateSettings = function ( checkSettings ) {
 		Object.keys(defaultSettings).forEach(
 			function (name) {
-				console.log(name, typeof checkSettings[name]);
+				DEBUG && console.log(name, typeof checkSettings[name]);
 				if ( typeof checkSettings[name] == "undefined" ) {
 					throw "invalidSettingsException";
 				}
@@ -67,16 +118,32 @@ var settingsManager = (function () {
 	}
 	
 	return {
+		/**
+		 * Get a setting by name.
+		 * @param {String} name
+		 * @return {Setting, Undefined}
+		 */
 		get: function ( name ) {
 			return settings[name];
 		},
 		
+		/**
+		 * Set a setting by name.
+		 * @param {String} name
+		 * @param {Object} value
+		 * @return {Bool} Success
+		 */
 		set: function ( name, value ) {
 			settings[name] = value;
 			// True: success; false: fail
 			return this.save(settings);
 		},
 		
+		/**
+		 * Save settings
+		 * @param {Object} newSettings
+		 * @return {Bool} Success
+		 */
 		save: function ( newSettings ) {
 			try {
 				validateSettings ( newSettings );
@@ -89,6 +156,10 @@ var settingsManager = (function () {
 			}
 		},
 		
+		/**
+		 * Returns current settings object (all settings).
+		 * @return {Object} Settings
+		 */
 		settings: function () {
 			return settings;
 		}
@@ -98,83 +169,137 @@ var settingsManager = (function () {
 
 chrome.runtime.onMessage.addListener(
 	function(request, sender, sendResponse) {
-		console.log(sender.tab ?
+		DEBUG && console.log(sender.tab ?
 		            "from a content script:" + sender.tab.url :
 		            "from the extension");
-		console.log( request );
+		DEBUG && console.log( request );
 		
 		switch ( request.action ) {
 			case 'add':
-				$.each( request.items, function ( index, item ) {
-					(function (item) {
-						db.transaction(function (tx) {
-							tx.executeSql('INSERT OR REPLACE INTO items VALUES (?, ?, ?, ?, ?, coalesce((SELECT folderName FROM itemFolders WHERE obj_info_id = ?), "None"), ?, coalesce((SELECT rarity FROM items WHERE obj_info_id = ?), ?), ?, coalesce((SELECT raritySet FROM items WHERE obj_info_id = ?), 0))',
-								[item.obj_info_id, item.name, item.desc, item.img, item.type, item.obj_info_id, item.qty, item.obj_info_id, item.rarity, item.wearable, item.obj_info_id]
-								//,function (tx, results) { console.log(results); },
-								//function (tx, results) { console.log(results); }
-							);
-						});
-					})(item);
-				});
+				actions.add( request.items );
 			break;
 			
 			case 'addIncomplete':
-				var itemNames = [];
-				var seen = 0;
-				
-				$.each( request.items, function ( name, qty, items ) {
-					db.transaction(function (tx) {
-						tx.executeSql('SELECT obj_info_id FROM items WHERE name = ?', [name],
-							function ( tx, result ) {
-								seen++;
-								
-								if ( result.rows.length > 0 ) {
-									// Add to main items
-									tx.executeSql('UPDATE items SET qty = qty + ? WHERE name = ?', [qty, name],
-										function (tx, results) { console.log(results); },
-										function (tx, results) { console.log(results); });
-								} else {
-									// Add to Incomplete
-									tx.executeSql('INSERT INTO incompleteItems ( name, qty ) VALUES ( ?, ? )', [name, qty],
-										function (tx, results) { console.log(results); },
-										function (tx, results) { console.log(results); });
-									
-									itemNames.push( name );
-									console.log(itemNames);
-								}
-								
-								if ( seen == Object.keys(request.items).length ) {
-									// Looped over all items
-									console.log(itemNames.length, itemNames);
-									if ( itemNames.length > 0 ) {
-										var notification = webkitNotifications.createHTMLNotification( '/notification.html#' + encodeURIComponent(JSON.stringify(itemNames)) );
-										notification.show();
-									}
-								}
-							}
-						);
-					});
-				});
-
+				actions.addIncomplete( request.items );
 			break;
 			
 			case 'addRarity':
-				var item = request.item;
-				db.transaction(function (tx) {
-					tx.executeSql('UPDATE items SET raritySet = 1, rarity = ?, desc = ?, img = ? WHERE name = ?', [item.rarity, item.desc, item.image, item.name], handleError, handleError);
-				});
+				actions.addRarity( request.item );
+				break;
 			break;
 			
 			case 'rarityNotFound':
-				var item = request.item;
-				db.transaction(function (tx) {
-					tx.executeSql('UPDATE items SET raritySet = 2 WHERE name = ?', [item], handleError, handleError);
-				});
+				actions.rarityNotFound( request.item );
+			break;
+			
+			default:
+				console.warn("Unexpected request:", request.action);
 			break;
 		}
 	}
 );
-  
+
+var actions = {
+	/**
+	 * Adds items from the SDB
+	 * @param {Object} items
+	 */
+	add: function ( items ) {
+		$.each( request.items, function ( index, item ) {
+			(function (item) {
+				db.transaction(function (tx) {
+					tx.executeSql('INSERT OR REPLACE INTO items VALUES' +
+					'(?, ?, ?, ?, ?, coalesce((SELECT folderName FROM itemFolders WHERE obj_info_id = ?), "None")'+
+					', ?, coalesce((SELECT rarity FROM items WHERE obj_info_id = ?), ?), ?, '+
+					'coalesce((SELECT raritySet FROM items WHERE obj_info_id = ?), 0))',
+
+					[item.obj_info_id, item.name, item.desc, item.img, item.type, item.obj_info_id,
+					item.qty, item.obj_info_id, item.rarity, item.wearable,
+					item.obj_info_id]
+						//,function (tx, results) { console.log(results); },
+						//function (tx, results) { console.log(results); }
+					);
+				});
+			})(item);
+		});
+		
+		/*
+		 Queue a lookup. Could add code to make sure there is only one timeout, but it is not an expensive operation.
+		*/
+		if ( settingsManager.get('lookupRarities') ) {
+			setTimeout( lookupRarities, 30000 );
+		}
+	},
+	
+	/**
+	 * Adds incomplete items to waiting list, or updates Qty if information is already present.
+	 * @param {Object} items
+	 */
+	addIncomplete: function ( items ) {
+		var itemNames = [];
+		var seen = 0, total = Object.keys(request.items).length;
+		
+		$.each( items, function ( name, qty, items ) {
+			db.transaction(function (tx) {
+				tx.executeSql('SELECT obj_info_id FROM items WHERE name = ?', [name],
+					function ( tx, result ) {
+						
+						if ( result.rows.length > 0 ) {
+							// Add to main items
+							tx.executeSql('UPDATE items SET qty = qty + ? WHERE name = ?', [qty, name],
+								function (tx, results) { DEBUG && console.log(results); },
+								function (tx, results) { DEBUG && console.log(results); });
+						} else {
+							// Add to Incomplete
+							tx.executeSql('INSERT INTO incompleteItems ( name, qty ) VALUES ( ?, ? )', [name, qty],
+								function (tx, results) { DEBUG && console.log(results); },
+								function (tx, results) { DEBUG &&console.log(results); });
+							
+							itemNames.push( name );
+							console.log(itemNames);
+						}
+						
+						if ( ++seen === total ) {
+							// Looped over all items
+							DEBUG && console.log(itemNames.length, itemNames);
+							if ( itemNames.length > 0 ) {
+								 // createHTMLNotification is set to be removed in Chrome 28+.
+								var notification = webkitNotifications.createHTMLNotification(
+									'/notification.html#' + encodeURIComponent(JSON.stringify(itemNames))
+								);
+								notification.show();
+							}
+						}
+					}
+				);
+			});
+		});
+	},
+	
+	/**
+	 * Adds Rarity information to an item.
+	 * @param {Object} item
+	 */
+	addRarity: function (item) {
+		db.transaction(function (tx) {
+					tx.executeSql('UPDATE items SET raritySet = 1, rarity = ?, desc = ?, img = ? WHERE name = ?', [item.rarity, item.desc, item.image, item.name], handleError, handleError);
+		});
+	},
+	
+	/**
+	 * Record when an item failed to show up in search, so that we know not to search for it again.
+	 * @param {String} item
+	 */
+	rarityNotFound: function (item) {
+		db.transaction(function (tx) {
+					tx.executeSql('UPDATE items SET raritySet = 2 WHERE name = ?', [item], handleError, handleError);
+		});
+	}
+}
+
+/*
+ * Referer must be set correctly when removing items from the SDB for it to be accepted.
+ */
 chrome.webRequest.onBeforeSendHeaders.addListener(
 	function (details) {
 		console.log(details.requestHeaders);
@@ -191,8 +316,10 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	["blocking", "requestHeaders"]
 );
 
-// Logout when looking up item info, to make sure that the extension is not
-// performing actions on behalf of the user (i.e. triggering REs)
+/*
+ * Logout when looking up item info, to make sure that the extension is not
+ * performing actions on behalf of the user (i.e. triggering REs)
+ */
 chrome.webRequest.onBeforeSendHeaders.addListener(
 	function (details) {
 		console.log(details.requestHeaders);
@@ -208,8 +335,29 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	["blocking", "requestHeaders"]
 );
 
-// Make pages lighter when loading item info
-// Saves a ton of requests/bandwidth
+/*
+ * Make sure any cookies sent when looking up item info
+ * as a logged out user do not replace existing cookies. 
+ */
+chrome.webRequest.onHeadersReceived.addListener(
+	function (details) {
+		console.log(details.url);
+		for (var i = 0; i < details.responseHeaders.length; ++i) {
+			if (details.responseHeaders[i].name == 'Set-Cookie' || details.responseHeaders[i].name == 'Set-Cookie3') {
+				details.responseHeaders.splice(i, 1);
+			}
+		}
+		
+		return {responseHeaders: details.responseHeaders};
+	},
+	{urls: ["http://www.neopets.com/search.phtml?selected_type=object&SDB&string=*"]},
+	["blocking", "responseHeaders"]
+);
+
+/*
+ * When looking up item info, prevent the page from loading any external resources.
+ * This saves a large amount of requests and bandwidth. 
+ */
 chrome.webRequest.onBeforeSendHeaders.addListener(
 	function (details) {
 		for (var i = 0; i < details.requestHeaders.length; ++i) {
@@ -225,51 +373,101 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	["blocking", "requestHeaders"]
 );
 
-var lookupInProgress = false;
-
-function lookupRarities () {
-	if ( !lookupInProgress ) {
-		lookupInProgress = true;
+var lookupManager = (function () {
+	var lookupInProgress	= false;
+	var lookupQueue			= [];
 	
-		db.transaction(function (tx) {
-			tx.executeSql('SELECT name FROM items WHERE rarity < 99 AND raritySet = 0 AND type != "Neocash"', [], doLookupRarities, handleError);
-		});
+	var frame				= document.createElement('iframe');
+	
+	// Sandbox prevents scripts from being requested, which helps reduce resource use.
+	frame.setAttribute('sandbox', '');
+	
+	/**
+	 * Starts loading information for the next item in the Queue.
+	 */
+	var getNext = function () {
+		if ( lookupQueue.length === 0 ) {
+			frame.removeAttribute('src');
+			lookupInProgress = false;
+			return false;
+		}
+		
+		DEBUG && console.log("Looking up:", lookupQueue[lookupQueue.length-1], "Remaining:", lookupQueue.length);
+		
+		/*
+		 * Add a delay between requests to be polite; we don't want to hammer the server.
+		 * If the browser is closed before lookups complete, they will resume where they left off. 
+		 */
+		setTimeout(function () {
+				frame.src = 'http://www.neopets.com/search.phtml?selected_type=object&SDB&string=' + encodeURIComponent( lookupQueue.shift() );
+			},
+			Math.random() * 10000
+		);
+		
+		// console.log('http://www.neopets.com/search.phtml?selected_type=object&SDB&string=' + encodeURIComponent( lookupQueue.shift() ));
+		// return getNext();
+	};
+	
+	/**
+	 * Called when the SQL transaction to retrieve items needing information has completed.
+	 * @param {Object} tx
+	 * @param {Object} results
+	 */
+	var doLookupRarities = function (tx, results) {
+		DEBUG && console.warn("doLookupRarities started");
+	
+		frame.onload = getNext;
+		document.body.appendChild(frame);
+		
+		for ( var row = 0; row < results.rows.length; row++ )
+			lookupQueue.push(results.rows.item(row).name);
+		
+		DEBUG && console.log(lookupQueue);
+		getNext();
 	}
-}
-
-var lookupQueue = [];
-var frame = document.createElement('iframe');
-
-function doLookupRarities (tx, results) {
-
-	frame.onload = getNext;
-	document.body.appendChild(frame);
 	
-	for ( var row = 0; row < results.rows.length; row++ )
-		lookupQueue.push(results.rows.item(row).name);
-	
-	console.log(lookupQueue);
-	getNext();
-}
-
-function getNext () {
-	if ( lookupQueue.length === 0 ) {
-		frame.removeAttribute('src');
-		lookupInProgress = false;
-		return false;
+	return {
+		/**
+		 * Begins looking up item information.
+		 * @return {Bool} Lookup Running
+		 */
+		run: function () {
+			DEBUG && console.warn("lookupRarities called, lookupInProgress = ", lookupInProgress);
+			if ( !lookupInProgress ) {
+				lookupInProgress = true;
+				
+				db.transaction(function (tx) {
+					/*
+					 * Items of rarity 99 and higher do not show up in search.
+					 * However, we are generally able to obtain much better estimates
+					 * for them from the SDB than for lower-rarity items.
+					 */
+					tx.executeSql('SELECT name FROM items WHERE rarity < 99 AND raritySet = 0 AND type != "Neocash"', [], doLookupRarities, handleError);
+				});
+				
+				return true;
+			}
+			
+			return false;
+		}
 	}
-	setTimeout(
-		function () {
-			frame.src = 'http://www.neopets.com/search.phtml?selected_type=object&SDB&string=' + encodeURIComponent( lookupQueue.shift() );
-		},
-		// Delay requests so we do not hammer the server
-		// If browser is closed, lookups will continue where they left off when it is started again
-		Math.random() * 10000
+})();
+
+function handleError (tx, error) {
+	var notification = webkitNotifications.createNotification(
+		'/images/icon-128.png',
+		'An Unexpected error has occured',
+		'Code: ' + error.code + ', Message: ' + error.message +
+		'\n\nPlease report this.'
 	);
-	// console.log('http://www.neopets.com/search.phtml?selected_type=object&SDB&string=' + encodeURIComponent( lookupQueue.shift() ));
-	// return getNext();
+	notification.show();
+	if ( !db ) {
+		// The DB is not accessible
+		window.close();
+	}
+	console.warn(error);
 }
 
-function handleError (tx, results) {
-	console.log(results);
+if ( settingsManager.get('lookupRarities') ) {
+	lookupManager.run();
 }

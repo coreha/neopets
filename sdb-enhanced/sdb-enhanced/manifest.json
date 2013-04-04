@@ -5,6 +5,10 @@
 	"description": "Adds features to Neopets SDB.",
 	"version": "1.0",
 
+	"minimum_chrome_version": "22.0.1229.79",
+	
+	"content_security_policy": "script-src 'self'; object-src 'none'; img-src http://images.neopets.com; frame-src http://www.neopets.com; connect-src http://www.neopets.com; font-src 'none'; media-src 'none'",
+
 	"permissions": [
 		"http://images.neopets.com/",
 		"http://www.neopets.com/",
@@ -16,6 +20,9 @@
 	"optional_permissions": [
 		"http://neo.regex.be/"
 	],
+	"sandbox": {
+		"content_security_policy": "script-src 'self'; object-src 'none'; img-src 'self'; frame-src 'none'; connect-src http://neo.regex.be; font-src 'none'; media-src 'none'"
+	},
 	"options_page": "settings.html",
 	"content_scripts": [
 	{
@@ -43,6 +50,6 @@
 		"images/icon-128.png",
 		"lib/bootstrap/bootstrap.css",
 		"jquery.min.js",
-		"notifications.js"
+		"notification.js"
 	]
 }

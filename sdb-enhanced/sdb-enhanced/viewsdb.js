@@ -1,7 +1,31 @@
-var settings = chrome.extension.getBackgroundPage().settingsManager.settings();
-var db = chrome.extension.getBackgroundPage().db.getDB();
+const Controller	= chrome.extension.getBackgroundPage();
+Controller || setTimeout(
+	function () {
+		jQuery('<div title="Unexpected Error"><h2>An error has occured.</h2><p>Please reload the extension, or restart your browser.</p></div>').appendTo('body').
+		dialog({
+			"modal": true,
+			"width": "500px",
+			"closeOnEscape": false,
+			"resizable": false,
+			"draggable": false,
+			"open": function() { $(".ui-dialog-titlebar-close").hide(); }
+		});
+		$('input').blur();
+	}, 0);
 
-var sdb = {
+const DEBUG = Controller.DEBUG;
+
+/**
+ * @see settingsManager
+ */
+const settings = Controller.settingsManager.settings();
+
+/**
+ * @see db
+ */
+var db = Controller.db.getDB();
+
+var SDB = {
 	types: [],
 	folders: [],
 	rarities: []
@@ -26,11 +50,12 @@ function updateRarities () {
 }
 
 function checkSettings () {
-	if ( !settings.regexSearch )
-		$('.regexSearch').addClass('hidden');
+	if ( settings.regexSearch )
+		$('.regexSearch').removeClass('hidden');
 	
 	if ( settings.lookupRarities ) {
-		chrome.extension.getBackgroundPage().lookupRarities();
+		Controller.lookupManager.run();
+		// Could check the return value and display a message.
 	}
 }
 
@@ -91,14 +116,20 @@ function restoreState () {
 	getResults();
 }
 
-// No longer in use.
+/**
+ * Sets initial view of search results.
+ * No longer in use.
+ * @deprecated
+ */
 function setInitialView () {
 	db.transaction( function (tx) {
 		tx.executeSql('SELECT * FROM items ORDER BY obj_info_id ASC LIMIT ?', [settings.itemsPerPage], updateView, handleError);
 	});
 }
 
-// Check if the DB needs information for any items
+/**
+ * Checks if the DB needs information for any items.
+ */
 function checkIncomplete() {
 	db.transaction( function(tx) {
 		tx.executeSql('DELETE FROM incompleteItems WHERE name IN (SELECT name FROM items)', [],
@@ -110,7 +141,9 @@ function checkIncomplete() {
 		);
 	});
 }
-
+/**
+ * 
+ */
 function handleIncomplete(tx, results) {
 	console.log( "Incomplete items:", results.rows.length );
 	if ( results.rows.length > 0 ) {
@@ -349,14 +382,14 @@ function doRemove ( obj_info_id ) {
 }
 
 function doReduce ( obj_info_id, newAmount ) {
-	console.log( newAmount );
+	DEBUG && console.log( "Removing items:", obj_info_id, "New Amount:", newAmount );
 	db.transaction( function (tx) {
 		tx.executeSql('UPDATE items SET qty = ? WHERE obj_info_id = ?', [newAmount, obj_info_id], handleReduced, handleError);
 	});
 }
 
 function handleReduced (tx, results) {
-	console.log(results);
+	DEBUG && console.log(results);
 	getResults(true);
 }
 
@@ -368,42 +401,42 @@ function moveCompleted (tx, results) {
 }
 
 function listFolders (tx, results) {
-	sdb.folders = [];
+	SDB.folders = [];
 	
 	for (var row = 0; row < results.rows.length; row++)
-		sdb.folders.push(results.rows.item(row).folder);
+		SDB.folders.push(results.rows.item(row).folder);
 	
 	/*
 	$('select[name=folder]').find('option[value!=""]').remove();
 		
-	$.each( sdb.folders, function ( index, folder ) {
+	$.each( SDB.folders, function ( index, folder ) {
 		$('select[name=folder]').append('<option>' + folder + '</option>');
 	});
 	*/
 	$('.folderGuide').find('a[data-value!=""]').remove();
 	
-	$.each ( sdb.folders, function ( index, folder ) {
+	$.each ( SDB.folders, function ( index, folder ) {
 		var li = document.createElement('li');
 		$('<a>', { "data-value": folder, "text": folder }).appendTo(li);
 		$('.folderGuide').append(li);
 	});
 	
-	$(document.searchForm.folder).autocomplete({ source: sdb.folders });
-	$(document.actionForm.folder).autocomplete({ source: sdb.folders, position: { "collision": "flip" } });
+	$(document.searchForm.folder).autocomplete({ source: SDB.folders });
+	$(document.actionForm.folder).autocomplete({ source: SDB.folders, position: { "collision": "flip" } });
 	
 	// Update Types after Folders
 	updateTypes();
 }
 
 function listTypes (tx, results) {
-	sdb.types = [];
+	SDB.types = [];
 	
 	for (var row = 0; row < results.rows.length; row++)
-		sdb.types.push(results.rows.item(row).type);
+		SDB.types.push(results.rows.item(row).type);
 	
 	$(document.searchForm.type).find('option[value!=""]').remove();
 	
-	$.each( sdb.types, function ( index, type ) {
+	$.each( SDB.types, function ( index, type ) {
 		$(document.searchForm.type).append('<option>' + type + '</option>');
 	});
 	
@@ -412,10 +445,10 @@ function listTypes (tx, results) {
 }
 
 function listRarity (tx, results) {
-	sdb.rarities = [];
+	SDB.rarities = [];
 	
 	for (var row = 0; row < results.rows.length; row++)
-		sdb.rarities.push(""+results.rows.item(row).rarity);
+		SDB.rarities.push(""+results.rows.item(row).rarity);
 		
 	rarityMap = [
 		{label: "Retired", value: 180},
@@ -584,17 +617,22 @@ function handleMsg (tx, data) {
 	console.log(data);
 }
 
+/**
+ * Delays running new search, to be more responsive in case the user is typing.
+ */
 function delayedResults () {
-	// If the user is typing, or holding backspace
-	// then there is no need to search every time.
+	// Here, using 'this' defaults to the window object.
 	if ( typeof this.timeoutID == "number" ) {
 		window.clearTimeout(this.timeoutID);
 	}
 	this.timeoutID = setTimeout( function () { getResults(); }, 300 );
 }
 
+/**
+ * Builds Query and gets new results.
+ * @param {Boolean} force
+ */
 function getResults (force) {
-
 	var searchData = $(document.searchForm).serialize();
 
 	if ( !force && this.lastSearch ) {
@@ -659,7 +697,7 @@ function getResults (force) {
 	
 	baseQuery += ' ORDER BY ' + document.searchForm.sort.value + ' ' + document.searchForm.sortWay.value;
 	
-	// SQLite is not MySQL.
+	// SQLite is not MySQL, there is no reason to use LIMIT.
 	// baseQuery += ' LIMIT ?';
 	// queryParams.push( parseInt( settings.itemsPerPage, 10 ) );
 	

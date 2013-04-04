@@ -1,15 +1,28 @@
-var db = chrome.extension.getBackgroundPage().db.getDB();
-var settingsManager = chrome.extension.getBackgroundPage().settingsManager;
-var settings = settingsManager.settings();
+const Controller	= chrome.extension.getBackgroundPage();
+Controller || setTimeout(
+	function () {
+		jQuery('<div title="Unexpected Error"><h2>An error has occured.</h2><p>Please reload the extension, or restart your browser.</p></div>').appendTo('body').
+		dialog({
+			"modal": true,
+			"width": "500px",
+			"closeOnEscape": false,
+			"resizable": false,
+			"draggable": false,
+			"open": function() { $(".ui-dialog-titlebar-close").hide(); }
+		});
+		$('input').blur();
+	}, 0);
+const DEBUG			= Controller.DEBUG;
+var settingsManager	= Controller.settingsManager;
+var settings		= settingsManager.settings();
+var db				= Controller.db.getDB();
 
 function getSettings () {
-	
 	$('.optionsForm input[type=checkbox]').each(
 			function (index, input) {
-				input.checked = ~~settings[input.name];
+					// Undefined will be coerced to 0.
+					input.checked = ~~settings[input.name];
 			});
-	document.optionsForm.lookupRarities.checked	= settings.lookupRarities;
-	document.optionsForm.regexSearch.checked	= settings.regexSearch;
 	
 	['itemsPerPage', 'notifications'].forEach( function (setting) {
 		for ( var i = 0; i < document.optionsForm[setting].options.length; i++ ) {
@@ -31,10 +44,14 @@ $(document).ready( function () {
 	$('.regexSearch').tooltip({ items: "div[class~=regexSearch]", content: "Regex must be a complete match.<br/><br/>To find an item with a name that is a single word and 12 characters long, you could use the following search:<br/><br/><pre>\\w{12}" });
 	$('.lookupRarities').tooltip({ items: "div[class~=lookupRarities]", content: "Uses the Neopets search to look up specific item rarities, as a logged out user.<br/><br/>If left unchecked, only rarity estimates will be available." });
 	$('.notifications').tooltip({ items: "div[class~=notifications]", content: "When you add previously unseen items to your SDB, you need to view them in the normal SDB for them to be added here.<br/<br/><br/><b>Never</b>: you will not be informed when items are missing information, and they will not show up until you view them in your normal SDB.<br/><br/><b>SDB Opened</b>:Shows a list when you open the extension, if applicable.<br/><br/><b>Items Added</b>: Shows a notification immediately when you add the item(s)." });
-	$('.shareData').tooltip({ items: "div[class~=shareData]", content: "Item data is shared only with explicit permission, and does not include any data that can be used to identify you or your account.<br/><br/>Shared data can be used for obtaining item info when you add items to your SDB via Quick Stock and Inventory.<br/><br/>Limited to: Item IDs, Names, Image urls, Descriptions, Rarities, and Types." });
 	
 	/*
-	MAY implement this in future versions to make retrieving information on new items more user-friendly. No data is shared in current versions, and if added in future versions the feature will require explicit approval.
+	MAY implement this as an OPTION in future versions to make retrieving information on new items more user-friendly.
+	No data is shared in current versions, and if added in future versions
+	the feature will require explicit approval, as seen here.
+
+	$('.shareData').tooltip({ items: "div[class~=shareData]", content: "Item data is shared only with explicit permission, and does not include any data that can be used to identify you or your account.<br/><br/>Shared data can be used for obtaining item info when you add items to your SDB via Quick Stock and Inventory.<br/><br/>Limited to: Item IDs, Names, Image urls, Descriptions, Rarities, and Types." });
+	
 	$('.shareData input[type=checkbox]').click( function (e) {
 		this.checked = !this.checked;
 		var box = this;
@@ -60,9 +77,7 @@ $(document).ready( function () {
 		e.preventDefault();
 		
 		if ( confirm('Empty Database?') ) {
-			db.transaction(function (tx) {
-				tx.executeSql('DROP TABLE items');
-			});
+			db.emptyDatabase();
 		}
 	});
 	
@@ -78,14 +93,12 @@ $(document).ready( function () {
 			settings[setting] = parseInt(document.optionsForm[setting].value, 10);
 		});
 		
-		console.log( settingsManager.save(settings) );
+		DEBUG && console.log( settingsManager.save(settings) );
 	});
 });
 
 function updateFolderView () {
-	db.transaction( function (tx) {
-		tx.executeSql('SELECT folder, Count(1) AS Count FROM items GROUP BY folder ORDER BY Count DESC', [], showFolders, handleError);
-	});
+	db.executeQuery('SELECT folder, Count(1) AS Count FROM items GROUP BY folder ORDER BY Count DESC', [], showFolders, handleError);
 }
 
 function showFolders (tx, results) {
