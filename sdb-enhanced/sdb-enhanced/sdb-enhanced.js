@@ -4,7 +4,13 @@ var objregex = new RegExp('back_to_inv\\\[(\\\d+)\\\]');
 var items = [];
 
 jQuery(document).ready(function() {
-	var trList = jQuery("td.contentModuleHeaderAlt").closest("table").find("tr[bgcolor]").has('img');
+	//var trList = jQuery("td.contentModuleHeaderAlt").closest("table").find("tr[bgcolor]").has('img');
+	/*
+	 * [name^=...] = name attribute begins with
+	 * [name$=...] = name attribute ends with
+	 * .closest('tr) gets the table rows
+	 */
+	var trList = $('input[name^="back_to_inv["][name$="]"]').closest('tr')
 	console.log ( "Matched Elements:", trList.length );
 	
 	trList.each(
@@ -67,6 +73,11 @@ jQuery(document).ready(function() {
 					}
 				}
 			} catch (e) {
+				/*
+				 * If there is an error, alert the user.
+				 * Make it obvious; so the user can report it and the relevant item name.
+				 * This should ideally never happen.
+				 */
 				alert('[SDB-Enhanced]\nUnexpected Error while processing\n' + item.name + '\n\n' + e.name + ': ' + e.message);
 				return true;
 			}
@@ -83,11 +94,13 @@ jQuery(document).ready(function() {
 	chrome.runtime.sendMessage( { "action": "add", "items": items } );
 	console.log( "[SDB-Enhanced] Queued", items.length, "items for processing." );
 	
-	$('<div style="width: 100%; position: fixed; top: 10px;">'+
-	  '<div style="width: 996px; margin: 0 auto; border-radius: 25px; background: '+
-	  'rgba(40,130,22,0.9); z-index: 10099991;"><span style="vertical-align: middle; font-size: 2em;">'+
+	$('<div style="width: 100%; position: fixed; bottom: 25px; z-index: 15">'+
+	  '<div style="width: 996px; margin: 0 auto; background: '+
+	  '#CDE; z-index: 10099991;"><span style="vertical-align: middle; font-size: 2em;">'+
 	  'Queued ' + items.length + ' items for processing.</span></div></div>')
 	.appendTo(document.body)
-	.fadeOut(5000)
+	.fadeOut(7500)
 	.on('click', function () { $(this).remove(); });
+	
+	// Record removals
 });

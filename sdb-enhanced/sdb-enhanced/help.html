@@ -3,21 +3,203 @@
 <head>
 	<link href="lib/bootstrap/bootstrap.css" rel="stylesheet" type="text/css">
 	<script type="text/javascript" src="jquery.min.js"></script>
+	<script type="text/javascript" src="lib/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="help.js"></script>
+	<style type="text/css">
+		body {
+			background-color: #CFCFCF;
+			margin-bottom: 10px;
+		}
+		.container {
+			border-radius: 0 0 25px 25px;
+			border: 2px solid #747474;
+			border-top: none;
+			background-color: #FFF;
+			width: 996px;
+			padding: 10px;
+		}
+		.footer {
+			width: 100%;
+			background: #ddd;
+			text-align: center;
+			padding: 0px;
+			margin: 0px;
+			margin-bottom: -10px;
+			border-radius: 25px;
+		}
+		.sidebar-container {
+			padding: 9px 0;
+			width: 220px;
+		}
+		::-webkit-scrollbar {
+			height: 12px;
+			width: 12px;
+			background: #ededed;
+		}
+		::-webkit-scrollbar-thumb {
+			background: rgba(0, 0, 0, 0.35);
+			-webkit-border-radius: 1ex;
+		}
+		::-webkit-scrollbar-corner {
+			background: #000;
+		}
+		.sidebar-right {
+			padding-left: 10px;
+		}
+		.nav-fixed {
+			position: fixed;
+			top: 10px;
+		}
+		.nav-scroll {
+			overflow-y: scroll;
+		}
+		h3:target, h4:target, h5:target {
+			border-radius: 5px 25px 25px 5px;
+			background-color: #EEE;
+		}
+		h3:first-child {
+			margin-top: -10px;
+		}
+		hr {
+			margin: 10px 0;
+		}
+		.default {
+			font-size: 11px;
+		}
+		.default:before{
+			content: "Default: ";
+		}
+		#expandall {
+			cursor: pointer;
+		}
+		p.q {
+			margin-bottom: 18px;
+			font-size: 18px;
+			font-weight: 200;
+			line-height: 30px;
+			cursor: pointer;
+		}
+		p.q:before {
+			content: "Q: ";
+		}
+		p.a {
+			display: none;
+		}
+		p.a:before {
+			content: "A: ";
+		}
+	</style>
 	<title>SDB Enhanced</title>
 </head>
 <body>
 <div class="container">
-<h2>SDB Enhanced</h2>
-<h3>Getting Started</h3>
-<p class="lead">First, you'll need to visit each page of your <a target="_blank" href="http://www.neopets.com/safetydeposit.phtml">SDB (click here)</a>.</p>
-<p>Wait for "Queued ## items for processing." to appear at the top of the page (it should be nearly instant), then click Next until you've visited every page.</p>
-<p>All of your items should now have been imported. Click the icon <sup>S</sup><small style="font-size: 75%;">D</small><sub>B</sub> to the right of your addressbar to open your new SDB.</p>
-<h3>Settings</h3>
-<p class="lead">Be sure to check the <a target="_blank" href="/settings.html">Settings Page (link)</a>.</p>
-<p>Hover over the options to see information on them.</p>
-<p><strong>Note:</strong> if you do not enable the option "Lookup Rarities", only rarity estimates will be shown. (Uncommon/Rare/Very Rare/etc...)</p>
-<h3>Questions?</h3>
-Ask! Suggestions are welcome.
+	<h2>SDB Enhanced</h2>
+	<hr>
+	<div class="row">
+		<div class="span3">
+			<div class="well sidebar-container">
+				<ul class="nav nav-list">
+					<li class="nav-header">
+						Important Information
+					</li>
+					<li class="active">
+						<a>About</a>
+					</li>
+					<li class="nav-header">First Steps</li>
+					<li>
+						<a>
+							Getting Started
+						</a>
+					</li>
+					
+					<li class="nav-header">
+						Configuration
+					</li>
+					<li>
+						<a>Settings</a>
+					</li>
+					<li class="sidebar-right">
+						<a>Show Rarity</a>
+					</li>
+					<li class="sidebar-right">
+						<a>Show Descriptions</a>
+					</li>
+					<li class="sidebar-right">
+						<a>Maintain Search State</a>
+					</li>
+					<li class="sidebar-right">
+						<a>Enable Regex Search</a>
+					</li>
+					<li class="sidebar-right">
+						<a>Lookup Rarities</a>
+					</li>
+					<li class="nav-header">
+						FAQ
+					</li>
+					<li>
+						<a>Multiple Computers</a>
+					</li>
+					<li>
+						<a>Folders</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="span9">
+			<h3>About</h3>
+			<p>SDB-Enhanced was written because the standard Neopets SDB lacks organisation and is clumsy/difficult to use. It addresses several common complaints seen on the Neoboards.</p>
+			<p>In writing this, I've been very careful not to include anything that I believe would be questionable/against the rules. The extension does not automate any player activity, or provide data that would otherwise be inaccessible; it only helps to facilitate better searching, sorting, and organisation of your SDB.</p>
+			<p><strong>This software is not endorsed by or affliated with Neopets.</strong></p>
+			<h3>Getting Started</h3>
+			<p>The first step is to visit each page of your standard SDB, so that the extension can import your item data.</p>
+			<p>To visit your standard SDB, <a target="_blank" href="http://www.neopets.com/safetydeposit.phtml">click here</a> or click the link to <strong>Safety Deposit Box</strong> from your inventory on Neopets.</p>
+			<p>You will see the message "Queued ## items for processing." appear at the bottom of the page. That means the items on that page are being added to your new SDB. You can click <strong>Next</strong> to go to the next page and add more items. You can stop at any page you'd like, but until you've visited each page of your standard SDB, the items will not be shown in the extension.</p>
+			<p>Once you've added as many items as you like, click the <sup>S</sup><small style="font-size: 65%;">D</small><sub>B</sub> icon to the right of your address bar.</p>
+			
+			<h3>Settings</h3>
+			<p>You can <a target="_blank" href="/settings.html">click here</a> to go to the settings page. You can also get to the settings page by clicking the <img src="/images/settings-icon.png" style="width: 19px;"> icon.</p>
+			
+			<h4>Show Rarity</h4>
+			<p>If checked, item rarities (r0, r75, r101, etc...) will be shown on the search page.</p>
+			<p class="default">Enabled</p>
+			
+			<h4>Show Descriptions</h4>
+			<p>If checked, item descriptions will be shown when you move the mouse over an item.</p>
+			<p class="default">Enabled</p>
+			
+			<h4>Maintain Search State</h4>
+			<p>Keeps your search input between views of the extension. For example, if you search "Negg", then close the extension, the same search will be shown the next time you open the extension. If unchecked, the extension will show a default (empty) search form each time.</p>
+			<p class="default">Enabled</p>
+			
+			<h4>Enable Regex Search</h4>
+			<p>Adds a checkbox to the search form to make the search use a regex (regular expression). If you do not know what this is, you do not need it.</p>
+			<p class="default">Disabled</p>
+			
+			<h4>Lookup Rarities</h4>
+			<p>Uses the Neopets search box to lookup item rarities.</p>
+			<p><strong>Note:</strong> if you do not enable this, only rarity estimates will be shown. (Uncommon/Rare/Very Rare/etc...)</p>
+			<p class="default">Disabled</p>
+
+			<h3>FAQ<small id="expandall" style="margin-left: 15px;">Show/Hide All</small></h3>
+			<h4>Multiple Computers</h4>
+			<p class="q">What if I remove item(s) from my SDB using a different browser or computer?</p>
+			<p class="a">Simply view the item(s) in your normal SDB to update the information for the extension at any time.</p>
+			
+			<p class="q">Can I use the extension on multiple computers?</p>
+			<p class="a">Yes, but you will need to add your items and folders on each separately. An option to sync folders with your Google account may be included in future versions.</p>
+			
+			<h4>Folders</h4>
+			
+			<p class="q">Is there a limit on how many folders I can have?</p>
+			<p class="a">No. You can have as many folders as you have items.</p>
+			<p class="q">Can I put an item in multiple folders, or have some of an item in one folder and some of it in another?</p>
+			<p class="a">No. Each item can only be in one folder, and moving one of an item to a folder moves all of that item.</p>
+
+			<h3>More Questions?</h3>
+			<p>Ask! Suggestions are also welcome.</p>
+		</div>
+	</div>
+	<div class="footer">SDB-Enhanced is free and open-source.<p><a target="_blank" href="https://github.com/coreha/neopets/tree/master/sdb-enhanced/sdb-enhanced">Click here for complete source code.</a></p></div>
 </div>
 </body>
 </html>

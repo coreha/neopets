@@ -680,7 +680,7 @@ function getResults (force) {
 	if ( document.searchForm.rarity.value.length > 0 ){
 		var rarity;
 		
-		console.log( document.searchForm.rarity.value.match(/(\d{1,3})-(\d{1,3})/) );
+		DEBUG && console.log( document.searchForm.rarity.value.match(/(\d{1,3})-(\d{1,3})/) );
 		
 		if ( rarity = document.searchForm.rarity.value.match(/(\d{1,3})-(\d{1,3})/) ) {
 			queryFields.push('rarity BETWEEN ? AND ?');

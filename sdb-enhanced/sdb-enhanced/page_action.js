@@ -83,7 +83,7 @@ db.executeQuery = function ( Query, data, success, error) {
 };
 
 /**
- * For debug, pront all queries to the console.
+ * For debug, print all queries to the console.
  */
 if ( DEBUG ) {
 	db._transaction = db.transaction;
