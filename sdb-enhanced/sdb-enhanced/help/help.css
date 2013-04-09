@@ -1,0 +1,83 @@
+body {
+	background-color: #CFCFCF;
+	margin-bottom: 10px;
+}
+.container {
+	border-radius: 0 0 25px 25px;
+	border: 2px solid #747474;
+	border-top: none;
+	background-color: #FFF;
+	width: 976px;
+	padding: 10px;
+}
+.footer {
+	width: 100%;
+	background: #ddd;
+	text-align: center;
+	padding: 0px;
+	margin: 0px;
+	margin-bottom: -10px;
+	border-radius: 25px;
+}
+.sidebar-container {
+	margin-top: 10px;
+	padding: 9px 0;
+	width: 220px;
+}
+::-webkit-scrollbar {
+	height: 12px;
+	width: 12px;
+	background: #ededed;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.35);
+	-webkit-border-radius: 1ex;
+}
+::-webkit-scrollbar-corner {
+	background: #000;
+}
+.sidebar-right > a {
+	padding-left: 30px !important;
+}
+.nav-fixed {
+	position: fixed;
+	top: 0px;
+}
+.nav-scroll {
+	overflow-y: scroll;
+}
+/*
+ * Can't use :target because of webkit/chrome bug
+ */
+h3.target, h4.target, h5.target {
+	border-radius: 5px 25px 25px 5px;
+	background-color: #EEE;
+}
+hr {
+	margin: 10px 0;
+}
+.default {
+	font-size: 11px;
+}
+.default:before{
+	content: "Default: ";
+}
+#expandall {
+	cursor: pointer;
+}
+p.q {
+	margin-bottom: 18px;
+	font-size: 18px;
+	font-weight: 200;
+	line-height: 30px;
+	cursor: pointer;
+}
+p.q:before {
+	content: "Q: ";
+}
+.a {
+	display: none;
+}
+p.a:before {
+	content: "A: ";
+}

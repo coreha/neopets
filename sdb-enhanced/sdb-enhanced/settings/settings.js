@@ -130,8 +130,8 @@ function showFolders (tx, results) {
 		var tr = document.createElement('tr');
 		$('<td>', {"text": item.folder}).appendTo(tr);
 		$('<td>', {"text": item.Count}).appendTo(tr);
-		$('<td>', {"html": '<select class="input-small"><option>Delete</option><option>Rename</option><option>Move All</option></select>'}).appendTo(tr);
-		$('<td>', {"html": '<button class="btn btn-primary" disabled>Go</button>'}).appendTo(tr);
+		//$('<td>', {"html": '<select class="input-small"><option>Delete</option><option>Rename</option><option>Move All</option></select>'}).appendTo(tr);
+		//$('<td>', {"html": '<button class="btn btn-primary" disabled>Go</button>'}).appendTo(tr);
 		$('.folder-container').append(tr);
 	}
 }

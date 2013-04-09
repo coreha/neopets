@@ -9,28 +9,71 @@ body {
 /* Rarities */
 .r0 {
 	font-style: italic;
-	content: rawr;
 }
+/*
+.rEstimate .r0:before {
+	content: "Unknown";
+}
+*/
 .r50 {
 	color: #000;
+}
+.rEstimate .r50:before {
+	content: "Basic";
 }
 .r75, .r85, .r90, .r95, .r98, .r99 {
 	color: rgb(0, 128, 0); /* green */
 }
+.rEstimate .r75:before {
+	content: "Uncommon";
+}
+.rEstimate .r85:before {
+	content: "Rare";
+}
+.rEstimate .r90:before {
+	content: "Very Rare";
+}
+.rEstimate .r95:before {
+	content: "Ultra Rare";
+}
+.rEstimate .r99:before {
+	content: "Super Rare";
+}
 .r101 {
 	color: #AA4455;
+}
+.rEstimate .r101:before {
+	content: "Special";
 }
 .r107 {
 	color: rgb(255, 165, 0); /* orange */
 }
+.rEstimate .r107:before {
+	content: "Mega Rare";
+}
 .r115 {
 	color: rgb(200, 0, 0); /* red */
+}
+.rEstimate .r115:before {
+	content: "r115+"
 }
 .r180 {
 	color: #666666;
 }
+.rEstimate .r180:before {
+	content: "Retired";
+}
 .r200 {
 	color: rgb(255, 0, 0); /* red */
+}
+.rEstimate .r200:before {
+	content: "Artifact";
+}
+.r500 {
+	color: rgb(255, 0, 0); /* not sure what to make this */
+}
+.rEstimate .r500:before {
+	content: "NC Mall";
 }
 .r999 {
 	color: #000;

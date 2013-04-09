@@ -7,7 +7,7 @@
 
 	"minimum_chrome_version": "22.0.1229.79",
 	
-	"content_security_policy": "script-src 'self'; object-src 'none'; img-src http://images.neopets.com; frame-src http://www.neopets.com; connect-src http://www.neopets.com; font-src 'none'; media-src 'none'",
+	"content_security_policy": "script-src 'self'; object-src 'none'; img-src 'self' http://images.neopets.com; frame-src http://www.neopets.com; connect-src http://www.neopets.com; font-src 'none'; media-src 'none'",
 
 	"permissions": [
 		"http://images.neopets.com/",
@@ -18,35 +18,32 @@
 		"webRequestBlocking",
 		"notifications"
 	],
-	"optional_permissions": [
-		"http://neo.regex.be/"
-	],
 	"sandbox": {
 		"content_security_policy": "script-src 'self'; object-src 'none'; img-src 'self'; frame-src 'none'; connect-src http://neo.regex.be; font-src 'none'; media-src 'none'"
 	},
-	"options_page": "settings.html",
+	"options_page": "settings/settings.html",
 	"content_scripts": [
 	{
 		"matches": ["http://www.neopets.com/safetydeposit.phtml*"],
-		"js": ["jquery.min.js", "sdb-enhanced.js"],
+		"js": ["lib/jquery.min.js", "content_scripts/sdb-enhanced.js"],
 		"run_at": "document_end",
 		"all_frames": true
 	},
 	{
 		"matches": ["http://www.neopets.com/quickstock.phtml*"],
-		"js": ["jquery.min.js", "quickstock.js"],
+		"js": ["lib/jquery.min.js", "content_scripts/quickstock.js"],
 		"run_at": "document_end",
 		"all_frames": true
 	},
 	{
 		"matches": ["http://www.neopets.com/iteminfo.phtml*"],
-		"js": ["jquery.min.js", "inventory.js"],
+		"js": ["lib/jquery.min.js", "content_scripts/inventory.js"],
 		"run_at": "document_end",
 		"all_frames": true
 	},
 	{
 		"matches": ["http://www.neopets.com/search.phtml?selected_type=object&SDB&string=*"],
-		"js": ["jquery.min.js", "lookupinfo.js"],
+		"js": ["lib/jquery.min.js", "content_scripts/lookupinfo.js"],
 		"run_at": "document_end",
 		"all_frames": true
 	}
@@ -54,10 +51,10 @@
 	"browser_action": {
 		"default_icon": "images/icon-19.png",
 		"default_title": "Open SDB",
-		"default_popup": "viewsdb.html"
+		"default_popup": "view/viewsdb.html"
 	},
 	"background": {
-		"scripts": ["jquery.min.js", "page_action.js"]
+		"scripts": ["lib/jquery.min.js", "Controller.js"]
 	},
 	"icons": {
 		"128": "images/icon-128.png"
@@ -65,7 +62,7 @@
 	"web_accessible_resources": [
 		"images/icon-128.png",
 		"lib/bootstrap/bootstrap.css",
-		"jquery.min.js",
-		"notification.js"
+		"lib/jquery.min.js",
+		"notifications/notification.js"
 	]
 }

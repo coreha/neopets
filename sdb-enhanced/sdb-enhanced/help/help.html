@@ -1,100 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<link href="lib/bootstrap/bootstrap.css" rel="stylesheet" type="text/css">
-	<script type="text/javascript" src="jquery.min.js"></script>
-	<script type="text/javascript" src="lib/jquery-ui.min.js"></script>
+	<link href="/lib/bootstrap/bootstrap.css" rel="stylesheet" type="text/css">
+	<link href="help.css" rel="stylesheet" type="text/css">
+	<script type="text/javascript" src="/lib/jquery.min.js"></script>
+	<script type="text/javascript" src="/lib/jquery-ui.min.js"></script>
 	<script type="text/javascript" src="help.js"></script>
-	<style type="text/css">
-		body {
-			background-color: #CFCFCF;
-			margin-bottom: 10px;
-		}
-		.container {
-			border-radius: 0 0 25px 25px;
-			border: 2px solid #747474;
-			border-top: none;
-			background-color: #FFF;
-			width: 996px;
-			padding: 10px;
-		}
-		.footer {
-			width: 100%;
-			background: #ddd;
-			text-align: center;
-			padding: 0px;
-			margin: 0px;
-			margin-bottom: -10px;
-			border-radius: 25px;
-		}
-		.sidebar-container {
-			padding: 9px 0;
-			width: 220px;
-		}
-		::-webkit-scrollbar {
-			height: 12px;
-			width: 12px;
-			background: #ededed;
-		}
-		::-webkit-scrollbar-thumb {
-			background: rgba(0, 0, 0, 0.35);
-			-webkit-border-radius: 1ex;
-		}
-		::-webkit-scrollbar-corner {
-			background: #000;
-		}
-		.sidebar-right {
-			padding-left: 10px;
-		}
-		.nav-fixed {
-			position: fixed;
-			top: 10px;
-		}
-		.nav-scroll {
-			overflow-y: scroll;
-		}
-		h3:target, h4:target, h5:target {
-			border-radius: 5px 25px 25px 5px;
-			background-color: #EEE;
-		}
-		h3:first-child {
-			margin-top: -10px;
-		}
-		hr {
-			margin: 10px 0;
-		}
-		.default {
-			font-size: 11px;
-		}
-		.default:before{
-			content: "Default: ";
-		}
-		#expandall {
-			cursor: pointer;
-		}
-		p.q {
-			margin-bottom: 18px;
-			font-size: 18px;
-			font-weight: 200;
-			line-height: 30px;
-			cursor: pointer;
-		}
-		p.q:before {
-			content: "Q: ";
-		}
-		p.a {
-			display: none;
-		}
-		p.a:before {
-			content: "A: ";
-		}
-	</style>
 	<title>SDB Enhanced</title>
 </head>
 <body>
 <div class="container">
-	<h2>SDB Enhanced</h2>
-	<hr>
+	<h2 class="pull-left">SDB Enhanced</h2>
+	<h2 class="pull-right">Help / Information</h2>
+	<hr style="clear: both;">
 	<div class="row">
 		<div class="span3">
 			<div class="well sidebar-container">
@@ -142,6 +60,15 @@
 					<li>
 						<a>Folders</a>
 					</li>
+					<li>
+						<a>PIN / Security</a>
+					</li>
+					<li>
+						<a>Source Code</a>
+					</li>
+					<li>
+						<a>More Questions?</a>
+					</li>
 				</ul>
 			</div>
 		</div>
@@ -157,10 +84,10 @@
 			<p>Once you've added as many items as you like, click the <sup>S</sup><small style="font-size: 65%;">D</small><sub>B</sub> icon to the right of your address bar.</p>
 			
 			<h3>Settings</h3>
-			<p>You can <a target="_blank" href="/settings.html">click here</a> to go to the settings page. You can also get to the settings page by clicking the <img src="/images/settings-icon.png" style="width: 19px;"> icon.</p>
+			<p>You can <a target="_blank" href="/settings/settings.html">click here</a> to go to the settings page. You can also get to the settings page by clicking the <img src="/images/settings-icon.png" style="width: 19px;"> icon.</p>
 			
 			<h4>Show Rarity</h4>
-			<p>If checked, item rarities (r0, r75, r101, etc...) will be shown on the search page.</p>
+			<p>If checked, item rarity estimates (Uncommon/Rare/Very Rare) or rarities (r0, r75, r101, etc...) will be shown on the search page. See <a href="#lookuprarities">Lookup Rarities</a> below.</p>
 			<p class="default">Enabled</p>
 			
 			<h4>Show Descriptions</h4>
@@ -176,25 +103,42 @@
 			<p class="default">Disabled</p>
 			
 			<h4>Lookup Rarities</h4>
-			<p>Uses the Neopets search box to lookup item rarities.</p>
+			<p>Uses the Neopets search box <strong>as a logged-out user</strong> to lookup item rarities. </p>
 			<p><strong>Note:</strong> if you do not enable this, only rarity estimates will be shown. (Uncommon/Rare/Very Rare/etc...)</p>
 			<p class="default">Disabled</p>
 
 			<h3>FAQ<small id="expandall" style="margin-left: 15px;">Show/Hide All</small></h3>
 			<h4>Multiple Computers</h4>
-			<p class="q">What if I remove item(s) from my SDB using a different browser or computer?</p>
-			<p class="a">Simply view the item(s) in your normal SDB to update the information for the extension at any time.</p>
+			<p class="q">What if I add or remove item(s) from my SDB using a different browser or computer?</p>
+			<p class="a">Simply view the item(s) in your normal SDB on the computer with the extension to update the information for the extension at any time.</p>
 			
 			<p class="q">Can I use the extension on multiple computers?</p>
 			<p class="a">Yes, but you will need to add your items and folders on each separately. An option to sync folders with your Google account may be included in future versions.</p>
 			
 			<h4>Folders</h4>
-			
 			<p class="q">Is there a limit on how many folders I can have?</p>
 			<p class="a">No. You can have as many folders as you have items.</p>
 			<p class="q">Can I put an item in multiple folders, or have some of an item in one folder and some of it in another?</p>
 			<p class="a">No. Each item can only be in one folder, and moving one of an item to a folder moves all of that item.</p>
 
+			<h4>PIN / Security</h4>
+			<p class="q">What if I have a PIN on my SDB?</p>
+			<p class="a">If you have a PIN enabled on your SDB, the extension will not be able to remove items. This is intentional. If you'd like to remove items, you can either disable the PIN on your SDB while removing items, or use the standard SDB to remove them. All other features, such as adding items to the extension, sorting, and adding to folders should work normally.</p>
+			
+			<h4>Source Code</h4>
+			<p class="q">How can I build the extension from source?</p>
+			<div class="a">
+				<ol>
+					<li>Get the source code and save it to your computer: <a target="_blank" href="https://github.com/coreha/neopets/tree/master/sdb-enhanced/sdb-enhanced">SDB-Enhanced</a></li>
+					<li>Visit <span color="green">chrome://extensions</span> in your browser (or open up the Chrome menu by clicking the icon to the far right of the Omnibox and select <strong>Extensions</strong> under the <strong>Tools</strong> menu to get to the same place).</li>
+					<li>Ensure that the <strong>Developer Mode</strong> checkbox in the top right-hand corner is checked.</li>
+					<li>Click <strong>Load unpacked extension...</strong> to pop up a file-selection dialog.</li>
+					<li>Navigate to the directory in which your extension files live, and select it.</li>
+				</ol>
+				<small>Steps 2-5 are from <a target="_blank" href="http://developer.chrome.com/extensions/getstarted.html#unpacked">Getting Started: Building a Chrome Extension</a> on the Chrome Developers site.</small><br/>
+			<small>All of the files in the lib/ dir can be replaced from their official sources: <a target="_blank" href="http://twitter.github.io/bootstrap/">Bootstrap</a>, <a target="_blank" href="http://jquery.com/">jQuery</a>, and <a target="_blank" href="http://jqueryui.com/">jQuery UI</a>.</small>
+			</div>
+			
 			<h3>More Questions?</h3>
 			<p>Ask! Suggestions are also welcome.</p>
 		</div>

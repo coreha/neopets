@@ -1,29 +1,40 @@
 $(document).ready(function (){
 	$('p.q').click(function () {
-		$(this).find('+ p.a').slideToggle();
+		$(this).find('+ .a').slideToggle();
 	});
 	
 	$('#expandall').click(function (){
-		$('p.q + p.a').slideToggle();
+		$('p.q + .a').slideToggle();
 	});
 	
 	/*
 	 * Auto-link the sidebars to the headers.
 	 */
 	$('.nav li a').each(function(index, element) {
-		element.setAttribute('href', '#' + element.innerText.toLowerCase().replace(' ', ''));
+		element.setAttribute('href', '#' + element.innerText.toLowerCase().replace(/[^A-Za-z0-9]/g, ''));
 	});
 	
 	$('h3, h4, h5').each(function (index, element) {
-		element.setAttribute('id', element.innerText.toLowerCase().replace(' ', ''));
+		element.setAttribute('id', element.innerText.toLowerCase().replace(/[^A-Za-z0-9]/g, ''));
 	});
 	
 	/*
 	 * Switch the active link when clicked.
 	 */
-	$('.nav a').click(function () {
+	$('.nav a').click(function (e) {
+		e.preventDefault();
+		
 		$('.nav li').removeClass('active');
 		$(this).closest('li').addClass('active');
+		
+		/*
+		 * Handle webkit/chrome bug - https://code.google.com/p/chromium/issues/detail?id=223903
+		 */
+		$('body').animate({
+			scrollTop: $(this.href.match(/#.*/)[0]).position().top
+		});
+		$('h3, h4, h5').removeClass('target');
+		$(this.href.match(/#.*/)[0]).addClass('target');
 	});
 	
 	/*

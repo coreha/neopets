@@ -246,13 +246,13 @@ function setInitialView () {
 function bindLinks() {
 	$('a.popoutLink').bind("click",
 		function () {
-			window.open( chrome.extension.getURL('/viewsdb.html') );
+			window.open( chrome.extension.getURL('/view/viewsdb.html') );
 		}
 	);
 	
 	$('a.settingsLink').bind("click",
 		function () {
-			window.open( chrome.extension.getURL('/settings.html') );
+			window.open( chrome.extension.getURL('/settings/settings.html') );
 		}
 	);
 	
@@ -390,7 +390,7 @@ $(document).ready( function () {
 		switch ( $('div.action select[name=action]').val() ) {
 		case 'Inventory':
 
-			$.post("http://www.neopets.com/process_safetydeposit.phtml?checksub=scan", $(document.itemForm).serialize()).done(
+			$.post("http://www.neopets.com/process_safetydeposit.phtml?checksub=scan&ref=SDB-Enhanced", $(document.itemForm).serialize()).done(
 				function (data) {
 					if ( data.match(/welcomeLogin/) ) {
 						handleError(null, {"message": "You are not logged in."});
@@ -404,6 +404,8 @@ $(document).ready( function () {
 								doReduce( parent.data('id'), parent.data('qty') - item.value );
 							}
 						});
+					} else if ( data.match(/Your PIN preferences require that you submit a PIN to complete this transaction/) ) {
+						handleError(null, {"message": "You have a PIN enabled."});
 					} else {
 						handleError(null, {"message": "An Unexpected Error has occured."});
 					}
@@ -531,6 +533,10 @@ updateView.addRow = function (item) {
 	tr.setAttribute('data-qty', item.qty);
 	tr.setAttribute('data-id', item.obj_info_id);
 	
+	if ( !settings.lookupRarities ) {
+		$(tr).addClass('rEstimate');
+	}
+	
 	rowContainer.appendChild(tr);
 	
 	var td = [];
@@ -552,7 +558,10 @@ updateView.addRow = function (item) {
 	if ( settings.showRarity ) {
 		td[1].appendChild( document.createElement('span') );
 		td[1].childNodes[1].setAttribute('class', 'pull-right r' + updateView.normaliseRarity(item.rarity) );
-		td[1].childNodes[1].innerText = "r" + item.rarity;
+		
+		if ( settings.lookupRarities ) {
+			td[1].childNodes[1].innerText = "r" + item.rarity;
+		}
 	}
 	
 	td[5].appendChild( document.createElement('input') );

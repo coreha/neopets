@@ -17,7 +17,7 @@ function checkInstalled ( url ) {
 		localStorage['version'] = VERSION;
 	}
 }
-checkInstalled( chrome.extension.getURL('/help.html') );
+checkInstalled( chrome.extension.getURL('/help/help.html') );
 
 /**
  * WebSQL DB object
@@ -63,6 +63,22 @@ db.updateFolderMap = function () {
 };
 
 /**
+ * Removes an item from the DB.
+ */
+db.removeItem = function (obj_info_id, removeQty) {
+	db.executeQuery('SELECT qty FROM items WHERE obj_info_id = ?', [obj_info_id], function (tx, results) {
+		if ( results.rows.length > 0 ) {
+			var qty = results.rows.item(0).qty;
+			if ( qty >= removeQty ) {
+				db.executeQuery('DELETE FROM items WHERE obj_info_id = ?', [obj_info_id]);
+			} else if ( qty > 0 ) {
+				db.executeQuery('UPDATE items SET qty = qty - ? WHERE obj_info_id = ?', [removeQty, obj_info_id]);
+			}
+		}
+	})
+};
+
+/**
  * Empty the items table, and re-create it.
  */
 db.emptyDatabase = function () {
@@ -85,6 +101,7 @@ db.executeQuery = function ( Query, data, success, error) {
 /**
  * For debug, print all queries to the console.
  */
+/*
 if ( DEBUG ) {
 	db._transaction = db.transaction;
 	db.transaction = function ( tx ) {
@@ -92,6 +109,7 @@ if ( DEBUG ) {
 		db._transaction(tx);
 	}
 }
+*/
 
 /**
  * Settings Manager
@@ -135,7 +153,7 @@ var settingsManager = (function () {
 		settings = JSON.parse(localStorage["settings"]);
 		validateSettings( settings );
 	} catch (e) {
-		console.warn(e.name, e.message);
+		DEBUG && console.warn(e.name, e.message);
 		settings = defaultSettings;
 	}
 	
@@ -287,8 +305,9 @@ var actions = {
 							DEBUG && console.log(itemNames.length, itemNames);
 							if ( itemNames.length > 0 ) {
 								 // createHTMLNotification is set to be removed in Chrome 28+.
+								 // https://code.google.com/p/chromium/issues/detail?id=137297
 								var notification = webkitNotifications.createHTMLNotification(
-									'/notification.html#' + encodeURIComponent(JSON.stringify(itemNames))
+									'/notifications/notification.html#' + encodeURIComponent(JSON.stringify(itemNames))
 								);
 								notification.show();
 							}
@@ -315,6 +334,49 @@ var actions = {
 		db.executeQuery('UPDATE items SET raritySet = 2 WHERE name = ?', [item], function () {}, handleError);
 	}
 }
+
+/*
+ * Record when items are removed from the SDB.
+ */
+chrome.webRequest.onBeforeRequest.addListener(
+	function (details) {
+		var data;
+		
+		if ( details.url.indexOf('ref=SDB-Enhanced') > -1 ) {
+			// The extension page can more accurately handle removing items.
+			DEBUG && console.log("Ignored SDB Removal because request was made from within extension.");
+			return;
+		} else if ( data = details.url.match(/remove_one_object=(\d+)/) ) {
+			DEBUG && console.log("Removing one of:", data[1])
+			db.removeItem(data[1], 1);
+		} else {
+			try {
+				data = details.requestBody.formData;
+				$.each(data, function (elementName, elementValue) {
+					
+					// If the input name starts with back_to_inv, it is something being removed
+					// And if more than 0 are being removed, we need to remove them from our local DB too.
+					if ( elementName.indexOf('back_to_inv') === 0 && elementValue[0] > 0 ) {
+						
+						// Extract the item ID
+						var obj_info_id = elementName.match(/^back_to_inv\[(\d+)\]/);
+						
+						// And remove the item if successful.
+						if ( typeof obj_info_id[1] != "undefined" ) {
+							DEBUG && console.log("Removing", elementValue[0], "of item:", obj_info_id[1]);
+							db.removeItem(obj_info_id[1], elementValue[0]);
+						}
+					}
+				});
+			} catch (e) {
+				// No form data available.
+				return;
+			}
+		}
+	},
+	{urls: ["http://www.neopets.com/process_safetydeposit.phtml*"]},
+	["requestBody"]
+)
 
 /*
  * Referer must be set correctly when removing items from the SDB for it to be accepted.
@@ -411,7 +473,7 @@ var lookupManager = (function () {
 			return false;
 		}
 		
-		DEBUG && console.log("Looking up:", lookupQueue[lookupQueue.length-1], "Remaining:", lookupQueue.length);
+		DEBUG && console.log("Looking up:", lookupQueue[0], "Remaining:", lookupQueue.length);
 		
 		/*
 		 * Add a delay between requests to be polite; we don't want to hammer the server.
@@ -434,7 +496,7 @@ var lookupManager = (function () {
 	 */
 	var doLookupRarities = function (tx, results) {
 		DEBUG && console.warn("doLookupRarities started");
-	
+		
 		frame.onload = getNext;
 		document.body.appendChild(frame);
 		
